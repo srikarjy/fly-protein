@@ -60,3 +60,14 @@ On k-mer vectors the fly hash is less accurate than exact cosine. Its pitch is a
 - `src/flyprotein/search.py` fingerprint index
 - `src/flyprotein/connectome.py` hemibrain PN->KC extraction
 - `docs/ROADMAP.md` next milestones
+
+## Fly Walker (interactive page)
+
+```bash
+pip install -e ".[dev]" pandas pyarrow umap-learn matplotlib
+hf download OATML-Markslab/ProteinGym_v1 --repo-type dataset --include "DMS_substitutions/*" --local-dir data/proteingym
+python prep/build_data.py --device cpu     # writes web/public/data.json
+cd web && npm install && npm run dev
+```
+
+See `web/README.md`. The assay is singles-only TEM-1 (no TEM-1 assay in ProteinGym has doubles).

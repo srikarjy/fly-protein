@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fly Walker</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Fly Walker</h1>
+    <p id="subtitle">Loading landscape…</p>
+  </header>
+  <main>
+    <section id="stage">
+      <div id="mapwrap">
+        <canvas id="map" aria-label="Map of protein variants coloured by measured fitness"></canvas>
+        <div id="tip" hidden></div>
+        <div id="legend"><span>low fitness</span><div id="ramp"></div><span>high</span></div>
+      </div>
+      <div id="kc-wrap">
+        <div class="label"><b>Kenyon cells</b> <span id="kc-note"></span></div>
+        <canvas id="kc" aria-label="Sparse Kenyon cell code of the current variant"></canvas>
+      </div>
+    </section>
+    <aside id="panel">
+      <div class="row buttons">
+        <button id="play">Play</button>
+        <button id="step">Step</button>
+        <button id="reset">Reset</button>
+      </div>
+      <label>Mode
+        <select id="mode">
+          <option value="chemotaxis">Chemotaxis (baseline, no brain model)</option>
+          <option value="mushroom">Mushroom body learner (random wiring)</option>
+          <option value="random">Random walk (control)</option>
+          <option value="hemibrain" disabled>Hemibrain wiring (later)</option>
+        </select>
+      </label>
+      <label>Speed <input id="speed" type="range" min="1" max="60" value="12" /></label>
+      <label>Temperature <output id="temp-out"></output> <input id="temp" type="range" min="0.01" max="0.5" step="0.01" value="0.1" /></label>
+      <p class="hint" id="mode-hint"></p>
+      <dl id="stats">
+        <dt>Variant</dt><dd id="s-var">–</dd>
+        <dt>Fitness</dt><dd id="s-fit">–</dd>
+        <dt>Steps</dt><dd id="s-steps">0</dd>
+        <dt>Best found</dt><dd id="s-best">–</dd>
+      </dl>
+      <p class="hint">Click the map to place the fly. Hover a point for its sequence.</p>
+      <details id="evalbox">
+        <summary>Compare the modes</summary>
+        <p class="hint">50 random starts × 200 steps each, averaged over 3 seeds. "Reached" is the share of starts that hit the top 10% / top 1% of fitness.</p>
+        <button id="run-eval">Run evaluation</button>
+        <table id="eval"><thead><tr><th>Mode</th><th>Median best</th><th>Top 10%</th><th>Top 1%</th></tr></thead><tbody></tbody></table>
+      </details>
+      <p class="hint" id="honest"></p>
+    </aside>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
