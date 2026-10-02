@@ -1,7 +1,8 @@
 """Protein family retrieval: FlyHash fingerprints vs raw cosine similarity.
 
-python scripts/demo.py                  # k-mer embeddings, numpy only
-python scripts/demo.py --esm            # ESM-2 embeddings (torch + transformers)
+python scripts/demo.py                          # k-mer embeddings, numpy only
+python scripts/demo.py --esm                    # ESM-2 embeddings (torch + transformers)
+python scripts/demo.py --esm --device cpu       # force CPU (skips Apple MPS / CUDA)
 """
 import argparse
 
@@ -22,6 +23,7 @@ def mutate(seq, frac, rng):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--esm", action="store_true")
+    p.add_argument("--device", default=None, help="cpu, mps or cuda (default: auto)")
     p.add_argument("--families", type=int, default=100)
     p.add_argument("--mut", type=float, default=0.3)
     a = p.parse_args()
@@ -32,7 +34,7 @@ def main():
     labels = [i for i in range(a.families) for _ in range(3)]
     queries = [mutate(b, a.mut, rng) for b in bases]
 
-    emb = ESM2Embedder() if a.esm else KmerEmbedder()
+    emb = ESM2Embedder(device=a.device) if a.esm else KmerEmbedder()
     M, Q = emb(members), emb(queries)
 
     cos = (Q / np.linalg.norm(Q, axis=1, keepdims=True)) @ (M / np.linalg.norm(M, axis=1, keepdims=True)).T
