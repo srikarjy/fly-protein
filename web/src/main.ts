@@ -16,6 +16,12 @@ const HINTS: Record<UiMode, string> = {
   random: "Control: ignores fitness entirely.",
 };
 
+interface Ghost { mode: Mode; path: number[]; best: number }
+const MODE_COLOR: Record<Mode, string> = { chemotaxis: "#f08c00", mushroom: "#1c7ed6", random: "#868e96" };
+const MODE_NAME: Record<Mode, string> = { chemotaxis: "Chemotaxis", mushroom: "Mushroom body", random: "Random walk" };
+let ghosts: Ghost[] = [];
+let theme: "auto" | "light" | "dark" = "auto";
+
 let L: Landscape;
 let fly: Fly;
 let start = 0;
@@ -36,13 +42,58 @@ function params() {
   return { mode, params: { ...DEFAULTS[mode], temperature } };
 }
 
-function resetFly(newStart = start) {
+function keepGhost() {
+  if (fly && fly.path.length > 1) ghosts.push({ mode: fly.mode, path: fly.path.slice(), best: fly.best });
+  renderGhosts();
+}
+
+function renderGhosts() {
+  const ul = $("ghosts");
+  ul.innerHTML = "";
+  ghosts.forEach((g) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<i style="background:${MODE_COLOR[g.mode]}"></i>${MODE_NAME[g.mode]}: ${g.path.length - 1} steps, best ${g.best.toFixed(2)}`;
+    ul.appendChild(li);
+  });
+}
+
+/** sameStart keeps earlier trails so modes can be compared from one start. */
+function resetFly(newStart = start, sameStart = false) {
+  if (sameStart) keepGhost();
+  else { ghosts = []; renderGhosts(); }
   start = newStart;
   const { mode, params: p } = params();
   fly = new Fly(L, mode, start, p);
   rng = mulberry32(start * 7919 + 1); // same start + mode => same walk
   $("mode-hint").textContent = HINTS[mode];
+  saveHash();
   draw();
+}
+
+function saveHash() {
+  const { mode } = params();
+  const q = new URLSearchParams({ mode, t: $<HTMLInputElement>("temp").value, s: $<HTMLInputElement>("speed").value, start: String(start) });
+  history.replaceState(null, "", `#${q}`);
+}
+
+function loadHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const mode = q.get("mode");
+  if (mode && ["chemotaxis", "mushroom", "random"].includes(mode)) $<HTMLSelectElement>("mode").value = mode;
+  const t = parseFloat(q.get("t") ?? "");
+  if (t >= 0.01 && t <= 0.5) $<HTMLInputElement>("temp").value = String(t);
+  const s = parseFloat(q.get("s") ?? "");
+  if (s >= 1 && s <= 60) $<HTMLInputElement>("speed").value = String(s);
+  const st = parseInt(q.get("start") ?? "", 10);
+  return st >= 0 && st < L.n ? st : null;
+}
+
+function applyTheme() {
+  if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+  $("theme").textContent = `Theme: ${theme}`;
+  try { localStorage.setItem("fw-theme", theme); } catch { /* storage may be blocked */ }
+  if (L) draw();
 }
 
 function sizeCanvas(c: HTMLCanvasElement) {
@@ -78,7 +129,15 @@ function draw() {
   g.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
   g.drawImage(base, 0, 0);
   g.scale(dpr, dpr);
-  const trail = css("--trail");
+  for (const gh of ghosts) {
+    g.strokeStyle = MODE_COLOR[gh.mode];
+    g.lineWidth = 1.5;
+    g.globalAlpha = 0.6;
+    g.beginPath();
+    gh.path.forEach((v, j) => (j ? g.lineTo(px(v), py(v)) : g.moveTo(px(v), py(v))));
+    g.stroke();
+  }
+  const trail = MODE_COLOR[fly.mode];
   g.strokeStyle = trail;
   g.lineWidth = 1.5;
   g.globalAlpha = 0.85;
@@ -202,18 +261,25 @@ async function main() {
     "The 2D map is a lossy UMAP picture. The fly walks the real 15-nearest-neighbor graph in embedding space, so a hop can jump across the map. Chemotaxis is a baseline; the mushroom body mode uses random PN→KC wiring, not the real connectome.";
 
   paintBase();
-  start = Math.floor(Math.random() * L.n);
+  try { const th = localStorage.getItem("fw-theme"); if (th === "light" || th === "dark") theme = th; } catch { /* ignore */ }
+  applyTheme();
+  start = loadHash() ?? Math.floor(Math.random() * L.n);
   $("temp-out").textContent = $<HTMLInputElement>("temp").value;
   resetFly();
 
   $("play").onclick = () => setPlaying(!playing);
   $("step").onclick = () => { setPlaying(false); fly.step(rng); draw(); };
-  $("reset").onclick = () => { setPlaying(false); resetFly(); };
-  $("mode").onchange = () => { setPlaying(false); resetFly(); };
+  $("reset").onclick = () => { setPlaying(false); resetFly(start, true); };
+  $("keep").onclick = () => { keepGhost(); draw(); };
+  $("clear").onclick = () => { ghosts = []; renderGhosts(); draw(); };
+  $("theme").onclick = () => { theme = theme === "auto" ? "light" : theme === "light" ? "dark" : "auto"; applyTheme(); };
+  $("speed").oninput = saveHash;
+  $("mode").onchange = () => { setPlaying(false); resetFly(start, true); };
   $("temp").oninput = () => {
     const t = parseFloat($<HTMLInputElement>("temp").value);
     $("temp-out").textContent = String(t);
     fly.params.temperature = params().params.temperature;
+    saveHash();
   };
   $("run-eval").onclick = runEval;
   mapCanvas.onclick = (ev) => { setPlaying(false); resetFly(nearest(ev)); };

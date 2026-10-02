@@ -10,6 +10,7 @@
   <header>
     <h1>Fly Walker</h1>
     <p id="subtitle">Loading landscape…</p>
+    <button id="theme" title="Switch theme">Theme: auto</button>
   </header>
   <main>
     <section id="stage">
@@ -29,6 +30,11 @@
         <button id="step">Step</button>
         <button id="reset">Reset</button>
       </div>
+      <div class="row buttons">
+        <button id="keep">Keep trail</button>
+        <button id="clear">Clear trails</button>
+      </div>
+      <ul id="ghosts"></ul>
       <label>Mode
         <select id="mode">
           <option value="chemotaxis">Chemotaxis (baseline, no brain model)</option>
