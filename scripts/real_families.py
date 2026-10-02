@@ -81,11 +81,17 @@ def evaluate(families, emb, seed=0, max_len=400, query_frac=1 / 3):
     def acc(top):
         return float(np.mean([idx_lab[j] == q_lab[i] for i, j in enumerate(top)]))
 
-    fh = FlyHash(d_in=emb.dim).fit(M)
+    fh = FlyHash(d_in=emb.dim, seed=seed).fit(M)
     hits = FingerprintIndex(fh.encode(M), idx_lab).query(fh.encode(Q), k=1)
+
+    # SimHash baseline: sign of random Gaussian projections, same code length (2000 bits)
+    R = rng.normal(size=(emb.dim, fh.n_kc)).astype(np.float32)
+    sb_M = np.where((M - mu) @ R > 0, 1.0, -1.0)
+    sb_Q = np.where((Q - mu) @ R > 0, 1.0, -1.0)
     return {
         "cosine": acc(_cos(Q, M).argmax(1)),
         "cosine_centered": acc(_cos(Q - mu, M - mu).argmax(1)),
+        "simhash": acc((sb_Q @ sb_M.T).argmax(1)),
         "flyhash": float(np.mean([h[0][0] == q_lab[i] for i, h in enumerate(hits)])),
         "n_index": len(idx_seqs),
         "n_query": len(q_seqs),
@@ -97,6 +103,7 @@ def main():
     p.add_argument("--esm", action="store_true")
     p.add_argument("--device", default=None)
     p.add_argument("--per-family", type=int, default=40)
+    p.add_argument("--seeds", type=int, default=5)
     a = p.parse_args()
 
     fams = {}
@@ -107,10 +114,13 @@ def main():
     embedders = {"k-mer": KmerEmbedder()}
     if a.esm:
         embedders["ESM-2 8M"] = ESM2Embedder(device=a.device)
-    print(f"\n{'embedding':10s} {'cosine':>8s} {'centered':>9s} {'FlyHash':>8s}")
+    methods = ["cosine", "cosine_centered", "simhash", "flyhash"]
+    print(f"\nmean +/- std over {a.seeds} random splits and wirings (2000-bit codes for simhash and flyhash)")
+    print(f"{'embedding':10s} " + " ".join(f"{m:>16s}" for m in methods))
     for name, emb in embedders.items():
-        r = evaluate(fams, emb)
-        print(f"{name:10s} {r['cosine']:8.1%} {r['cosine_centered']:9.1%} {r['flyhash']:8.1%}   (index {r['n_index']}, queries {r['n_query']})")
+        runs = [evaluate(fams, emb, seed=s) for s in range(a.seeds)]
+        cells = [f"{np.mean([r[m] for r in runs]):6.1%} +/-{np.std([r[m] for r in runs]):5.1%}" for m in methods]
+        print(f"{name:10s} " + " ".join(f"{c:>16s}" for c in cells) + f"   (queries {runs[0]['n_query']})")
 
 
 if __name__ == "__main__":
