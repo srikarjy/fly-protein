@@ -54,7 +54,8 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px
 th, td { text-align: right; padding: 3px 4px; border-bottom: 1px solid var(--line); }
 th:first-child, td:first-child { text-align: left; }
 @media (max-width: 760px) {
-  main { flex-direction: column; }
+  main { flex-direction: column; align-items: stretch; }
+  #stage { width: 100%; }
   #panel { width: 100%; flex-basis: auto; }
   #map { max-height: none; touch-action: manipulation; }
   #theme { position: static; margin-top: 6px; }

@@ -73,6 +73,7 @@ function resetFly(newStart = start, sameStart = false) {
 function saveHash() {
   const { mode } = params();
   const q = new URLSearchParams({ mode, t: $<HTMLInputElement>("temp").value, s: $<HTMLInputElement>("speed").value, start: String(start) });
+  if (fly && fly.path.length > 1) q.set("n", String(fly.path.length - 1));
   history.replaceState(null, "", `#${q}`);
 }
 
@@ -93,7 +94,7 @@ function applyTheme() {
   else document.documentElement.setAttribute("data-theme", theme);
   $("theme").textContent = `Theme: ${theme}`;
   try { localStorage.setItem("fw-theme", theme); } catch { /* storage may be blocked */ }
-  if (L) draw();
+  if (L && fly) draw();
 }
 
 function sizeCanvas(c: HTMLCanvasElement) {
@@ -183,12 +184,13 @@ function drawKenyon() {
   let wmax = 1e-9;
   if (wts) for (let i = 0; i < wts.length; i++) wmax = Math.max(wmax, Math.abs(wts[i]));
   for (const i of L.codes[fly.pos]) {
-    g.fillStyle = wts ? (wts[i] >= 0 ? "#e8590c" : "#1971c2") : css("--accent");
-    g.globalAlpha = wts ? 0.35 + 0.65 * Math.min(1, Math.abs(wts[i]) / wmax) : 1;
+    const learned = wts !== undefined && Math.abs(wts[i]) > 1e-6;
+    g.fillStyle = !wts || !learned ? css("--text") : wts[i] > 0 ? "#e8590c" : "#1971c2";
+    g.globalAlpha = learned ? 0.35 + 0.65 * Math.min(1, Math.abs(wts![i]) / wmax) : 0.55;
     g.fillRect((i % cols) * cw, Math.floor(i / cols) * ch, cw, ch);
   }
   g.globalAlpha = 1;
-  $("kc-note").textContent = `${L.codes[fly.pos].length} of ${L.nKc} lit` + (wts ? " · orange = learned positive weight, blue = negative" : " · not used by this walker");
+  $("kc-note").textContent = `${L.codes[fly.pos].length} of ${L.nKc} lit` + (wts ? " · grey = untrained, orange = learned positive weight, blue = negative" : " · not used by this walker");
 }
 
 function nearest(ev: MouseEvent): number {
@@ -217,6 +219,7 @@ function tick(last = 0, acc = 0) {
 
 function setPlaying(p: boolean) {
   playing = p;
+  if (!p) saveHash();
   $("play").textContent = p ? "Pause" : "Play";
   if (p) requestAnimationFrame((t) => tick(t)(t));
 }
@@ -265,10 +268,13 @@ async function main() {
   applyTheme();
   start = loadHash() ?? Math.floor(Math.random() * L.n);
   $("temp-out").textContent = $<HTMLInputElement>("temp").value;
+  const n0 = parseInt(new URLSearchParams(location.hash.slice(1)).get("n") ?? "0", 10);
   resetFly();
+  for (let i = 0; i < Math.min(n0, 5000); i++) fly.step(rng);
+  if (n0 > 0) draw();
 
   $("play").onclick = () => setPlaying(!playing);
-  $("step").onclick = () => { setPlaying(false); fly.step(rng); draw(); };
+  $("step").onclick = () => { setPlaying(false); fly.step(rng); saveHash(); draw(); };
   $("reset").onclick = () => { setPlaying(false); resetFly(start, true); };
   $("keep").onclick = () => { keepGhost(); draw(); };
   $("clear").onclick = () => { ghosts = []; renderGhosts(); draw(); };
