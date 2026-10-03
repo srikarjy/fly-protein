@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Circuit, Landscape, Trace } from "../lib/types";
-import { SETTLED, flyPose, revealAt, specOf, stepDuration } from "./choreo";
+import { SETTLED, flyPose, glideReveal, revealAt, specOf, stepDuration } from "./choreo";
 import { boModel, candidateModel, kcSummary, metricModel, pipelineModel } from "./models";
 import { createEngine, circuitShown, type StepView } from "./state";
 import { ReplayStore, deepLinkFor, parseDeepLink } from "./store";
@@ -238,6 +238,22 @@ describe("animation state never replaces recorded scientific values", () => {
         expect(p.u).toBeGreaterThanOrEqual(0);
         expect(p.u).toBeLessThanOrEqual(1);
       }
+    }
+  });
+
+  it("glide mode moves the fly along the recorded hops but shows every panel at its settled recorded state", () => {
+    for (const k of [1, 44, 90, B]) {
+      const v = engine.view(k);
+      const spec = specOf(v);
+      for (let g = 0; g < 1; g += 0.1) {
+        const r = glideReveal(g, spec);
+        expect([r.input, r.sparse, r.readout, r.measure, r.update, r.advance]).toEqual([1, 1, 1, 1, 1, 1]);
+        const p = flyPose(v, r);
+        expect(p.u).toBeGreaterThanOrEqual(0);
+        expect(p.u).toBeLessThanOrEqual(1);
+      }
+      expect(glideReveal(1, spec)).toBe(SETTLED);
+      expect(flyPose(v, glideReveal(0, spec)).from).toBe(v.fly.prevAt);
     }
   });
 

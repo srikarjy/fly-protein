@@ -68,6 +68,15 @@ export function revealAt(elapsedMs: number, spec: StepSpec): Reveal {
   return out as unknown as Reveal;
 }
 
+/** "Stage animation" switched off (or very fast playback): only the fly's travel is animated, every panel shows the settled recorded state at once. */
+export function glideReveal(g: number, spec: StepSpec): Reveal {
+  if (g >= 1) return SETTLED;
+  const free = spec.hopsBeforeFinal > 0;
+  const arrive = spec.hasDecision ? (free ? smooth(g / 0.45) : 1) : smooth(g);
+  const move = spec.hasDecision ? smooth((g - (free ? 0.35 : 0)) / (free ? 0.65 : 1)) : 1;
+  return { phase: spec.hasDecision && arrive >= 1 ? "move" : "arrive", arrive, input: 1, sparse: 1, readout: 1, move, measure: 1, update: 1, advance: 1, settled: false };
+}
+
 export interface Pose {
   /** the two recorded variants the fly is between, and how far along (0..1); u === 1 means exactly at `to` */
   from: number;

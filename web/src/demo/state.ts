@@ -106,6 +106,8 @@ export interface Engine {
   budget: number;
   /** wiring[kc * perKc + s] = the s-th PN that Kenyon cell kc samples */
   wiring: Uint16Array;
+  /** the variant measured by the k-th measurement (k = 1..), per method */
+  queryOrder: { fly: number[]; bo: number[] };
   /** the measurement count at which each method first measured a variant */
   measuredAt: { fly: Map<number, number>; bo: Map<number, number> };
   view(k: number): StepView;
@@ -230,7 +232,7 @@ export function createEngine(trace: Trace, land: Landscape, circ: Circuit): Engi
 
   const cache = new Map<number, StepView>();
   return {
-    trace, land, circ, budget: B, wiring, measuredAt,
+    trace, land, circ, budget: B, wiring, measuredAt, queryOrder: { fly: fly.queryOrder, bo: bo.queryOrder },
     view(k: number): StepView {
       k = Math.max(0, Math.min(B, Math.round(k)));
       let v = cache.get(k);

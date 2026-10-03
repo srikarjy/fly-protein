@@ -33,8 +33,8 @@ export function pipelineModel(engine: Engine, v: StepView, r: Reveal): Stage[] {
     return { id, title, state: st, value: st === "pending" ? null : value, detail: st === "pending" ? null : detail };
   };
   return [
-    stage("input", "ESM-2 input", r.input, `${engine.circ.meta.n_pn} PN channels`, `${name(c.variant)} · values ${signed(lo)} to ${signed(hi)}`),
-    stage("sparse", "Sparse KC code", r.sparse, kc.text, `drive cut-off ${fmt(c.cutoff[0])}, strongest loser ${fmt(c.cutoff[1])}`),
+    stage("input", "ESM-2 input", r.input, `${engine.circ.meta.n_pn} PN channels`, `${name(c.variant)} · values ${signed(lo, 3)} to ${signed(hi, 3)}`),
+    stage("sparse", "Sparse KC code", r.sparse, kc.text, `drive cut-off ${fmt(c.cutoff[0], 3)}, strongest loser ${fmt(c.cutoff[1], 3)}`),
     stage("readout", "Learner readout", d ? r.readout : start ? 0 : 1, d ? `${d.candidates.length} neighbours scored` : "no decision this step",
       d ? `chosen score ${signed(d.scores[d.chosenIndex], 4)} · probability ${(100 * d.probs[d.chosenIndex]).toFixed(1)}%` : f.kind === "restart" ? "restart at a random unmeasured variant" : "initial placement"),
     stage("mutation", "Mutation", d ? r.move : start ? 0 : 1, d ? `${name(f.from)} → ${name(d.chosen)}` : name(f.at), d ? "neighbour in ESM-2 embedding space" : null),

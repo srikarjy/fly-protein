@@ -13,13 +13,15 @@
     "@types/d3-scale": "^4.0.9",
     "@types/d3-scale-chromatic": "^3.1.0",
     "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
   },
   "dependencies": {
     "d3-scale": "^4.0.2",
-    "d3-scale-chromatic": "^3.1.0"
+    "d3-scale-chromatic": "^3.1.0",
+    "three": "^0.186.0"
   },
   "description": "Static site: query-budgeted protein search study with a replayable demo"
 }
