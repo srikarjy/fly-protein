@@ -1,0 +1,56 @@
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 6218.78it/s]
+BLAT_ECOLX_Firnberg_2014 esm2_t6_8M_UR50D wt 0s
+BLAT_ECOLX_Firnberg_2014 esm2_t6_8M_UR50D mm 5s
+DYR_ECOLI_Nguyen_2023 esm2_t6_8M_UR50D wt 0s
+DYR_ECOLI_Nguyen_2023 esm2_t6_8M_UR50D mm 2s
+RASH_HUMAN_Bandaru_2017 esm2_t6_8M_UR50D wt 0s
+RASH_HUMAN_Bandaru_2017 esm2_t6_8M_UR50D mm 3s
+UBC9_HUMAN_Weile_2017 esm2_t6_8M_UR50D wt 0s
+UBC9_HUMAN_Weile_2017 esm2_t6_8M_UR50D mm 3s
+NUD15_HUMAN_Suiter_2020 esm2_t6_8M_UR50D wt 0s
+NUD15_HUMAN_Suiter_2020 esm2_t6_8M_UR50D mm 2s
+TPK1_HUMAN_Weile_2017 esm2_t6_8M_UR50D wt 0s
+TPK1_HUMAN_Weile_2017 esm2_t6_8M_UR50D mm 4s
+MLAC_ECOLI_MacRae_2023 esm2_t6_8M_UR50D wt 0s
+MLAC_ECOLI_MacRae_2023 esm2_t6_8M_UR50D mm 3s
+KKA2_KLEPN_Melnikov_2014 esm2_t6_8M_UR50D wt 0s
+KKA2_KLEPN_Melnikov_2014 esm2_t6_8M_UR50D mm 5s
+TPMT_HUMAN_Matreyek_2018 esm2_t6_8M_UR50D wt 0s
+TPMT_HUMAN_Matreyek_2018 esm2_t6_8M_UR50D mm 4s
+RNC_ECOLI_Weeks_2023 esm2_t6_8M_UR50D wt 0s
+RNC_ECOLI_Weeks_2023 esm2_t6_8M_UR50D mm 3s
+Loading weights:   0%|          | 0/491 [00:00<?, ?it/s]Loading weights: 100%|██████████| 491/491 [00:00<00:00, 6943.67it/s]
+BLAT_ECOLX_Firnberg_2014 esm2_t30_150M_UR50D wt 2s
+BLAT_ECOLX_Firnberg_2014 esm2_t30_150M_UR50D mm 110s
+DYR_ECOLI_Nguyen_2023 esm2_t30_150M_UR50D wt 1s
+DYR_ECOLI_Nguyen_2023 esm2_t30_150M_UR50D mm 38s
+RASH_HUMAN_Bandaru_2017 esm2_t30_150M_UR50D wt 0s
+RASH_HUMAN_Bandaru_2017 esm2_t30_150M_UR50D mm 27s
+UBC9_HUMAN_Weile_2017 esm2_t30_150M_UR50D wt 0s
+UBC9_HUMAN_Weile_2017 esm2_t30_150M_UR50D mm 20s
+NUD15_HUMAN_Suiter_2020 esm2_t30_150M_UR50D wt 0s
+NUD15_HUMAN_Suiter_2020 esm2_t30_150M_UR50D mm 25s
+TPK1_HUMAN_Weile_2017 esm2_t30_150M_UR50D wt 0s
+TPK1_HUMAN_Weile_2017 esm2_t30_150M_UR50D mm 85s
+MLAC_ECOLI_MacRae_2023 esm2_t30_150M_UR50D wt 0s
+MLAC_ECOLI_MacRae_2023 esm2_t30_150M_UR50D mm 37s
+KKA2_KLEPN_Melnikov_2014 esm2_t30_150M_UR50D wt 1s
+KKA2_KLEPN_Melnikov_2014 esm2_t30_150M_UR50D mm 75s
+TPMT_HUMAN_Matreyek_2018 esm2_t30_150M_UR50D wt 0s
+TPMT_HUMAN_Matreyek_2018 esm2_t30_150M_UR50D mm 56s
+RNC_ECOLI_Weeks_2023 esm2_t30_150M_UR50D wt 1s
+RNC_ECOLI_Weeks_2023 esm2_t30_150M_UR50D mm 62s
+Loading weights:   0%|          | 0/539 [00:00<?, ?it/s]Loading weights: 100%|██████████| 539/539 [00:00<00:00, 6968.79it/s]
+BLAT_ECOLX_Firnberg_2014 esm2_t33_650M_UR50D wt 9s
+DYR_ECOLI_Nguyen_2023 esm2_t33_650M_UR50D wt 10s
+RASH_HUMAN_Bandaru_2017 esm2_t33_650M_UR50D wt 10s
+UBC9_HUMAN_Weile_2017 esm2_t33_650M_UR50D wt 10s
+NUD15_HUMAN_Suiter_2020 esm2_t33_650M_UR50D wt 9s
+TPK1_HUMAN_Weile_2017 esm2_t33_650M_UR50D wt 10s
+MLAC_ECOLI_MacRae_2023 esm2_t33_650M_UR50D wt 10s
+KKA2_KLEPN_Melnikov_2014 esm2_t33_650M_UR50D wt 11s
+TPMT_HUMAN_Matreyek_2018 esm2_t33_650M_UR50D wt 10s
+RNC_ECOLI_Weeks_2023 esm2_t33_650M_UR50D wt 12s
+Loading weights:   0%|          | 0/539 [00:00<?, ?it/s]Loading weights: 100%|██████████| 539/539 [00:00<00:00, 6847.15it/s]
+/opt/anaconda3/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
