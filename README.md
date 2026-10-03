@@ -2,7 +2,7 @@
 
 A reproducible study of **query-budgeted protein fitness-landscape search** using ESM-2, ProteinGym, fly-inspired sparse coding, Bayesian optimization, evolutionary search and zero-shot protein language models.
 
-**Live site and replayable demo: DEPLOY_URL**
+**Live site and replayable demo: https://fly-protein.vercel.app**
 
 ## 1. Project question
 
@@ -126,7 +126,7 @@ pytest && (cd web && npm ci && npm test && npm run build)
 
 ## 14. Deployment
 
-Static site (`web/`, Vite build) deployed on Vercel: DEPLOY_URL
+Static site (`web/`, Vite build) deployed on Vercel: https://fly-protein.vercel.app
 
 ## 15. License
 
