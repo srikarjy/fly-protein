@@ -30,3 +30,21 @@ export interface Trace {
   verified: { fly_log_sha256: string; gpbo_log_sha256: string; note: string };
 }
 export interface Landscape { assay: string; n: number; mutants: string[]; x: number[]; y: number[]; fitness: number[]; pct: number[] }
+
+/** Additive display serialization (scripts/export_demo_circuit.py): what the trace does not carry about the PN->KC circuit. */
+export interface Circuit {
+  assay: string;
+  seed: number;
+  trace_sha256: string;
+  meta: { n_pn: number; n_kc: number; per_kc: number; k_active: number; temperature: number; wiring: string; pn: string };
+  /** little-endian uint16, row-major (n_kc x per_kc): the PN indices each Kenyon cell samples */
+  wiring_b64: string;
+  /** embedding-unit scale of each measured variant's 8-bit PN values (value = q / 127 * pn_max) */
+  pn_max: Record<string, number>;
+  /** exact input drive of each active Kenyon cell (same order as trace.fly.codes) */
+  drive: Record<string, number[]>;
+  /** [weakest active drive, strongest inactive drive] */
+  cutoff: Record<string, [number, number]>;
+  /** the learner's move probabilities per recorded event (null for non-move events) */
+  probs: (number[] | null)[];
+}
