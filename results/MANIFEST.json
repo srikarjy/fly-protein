@@ -1,0 +1,274 @@
+{
+ "project": "fly-protein",
+ "dataset": {
+  "name": "ProteinGym DMS substitutions",
+  "repo": "OATML-Markslab/ProteinGym_v1",
+  "revision": "1ea2aa10a328cc085b64328e790c54755fe32b10"
+ },
+ "assays": [
+  {
+   "id": "BLAT_ECOLX_Firnberg_2014",
+   "n_variants": 4783,
+   "wt_length": 286,
+   "embedding_sha256": "379b44024db3a5dc055ad4a550450c39427cab393c742ff532e7c4602a250bac"
+  },
+  {
+   "id": "DYR_ECOLI_Nguyen_2023",
+   "n_variants": 2916,
+   "wt_length": 159,
+   "embedding_sha256": "b4437ffd7d3dfd58d127beb657ae8f1f31270b22c591067bc9fb16df4e2f550b"
+  },
+  {
+   "id": "RASH_HUMAN_Bandaru_2017",
+   "n_variants": 3134,
+   "wt_length": 189,
+   "embedding_sha256": "83fba7beaebd91f7d858fdb00140743c204606ec22e1aa6cd9dd1b4439900b0b"
+  },
+  {
+   "id": "UBC9_HUMAN_Weile_2017",
+   "n_variants": 2563,
+   "wt_length": 159,
+   "embedding_sha256": "ac7e1b928d1a82fc5fc20e8227dc168445af96841566bf3d8154f9ca9484e182"
+  },
+  {
+   "id": "NUD15_HUMAN_Suiter_2020",
+   "n_variants": 2844,
+   "wt_length": 164,
+   "embedding_sha256": "c3cd6105373de8d0641e89521bf7f7cb4d41260355d46241ac1b445db168c998"
+  },
+  {
+   "id": "TPK1_HUMAN_Weile_2017",
+   "n_variants": 3181,
+   "wt_length": 243,
+   "embedding_sha256": "4b9d4278f0e6cdc7f1949dc78c9a4f56cab89d5b78837994a45a61c4e5e69643"
+  },
+  {
+   "id": "MLAC_ECOLI_MacRae_2023",
+   "n_variants": 4007,
+   "wt_length": 211,
+   "embedding_sha256": "bfa368e308a122dced46e9eb63bf56b40c1c537d0af00b8a5f4401b64a819bb3"
+  },
+  {
+   "id": "KKA2_KLEPN_Melnikov_2014",
+   "n_variants": 4960,
+   "wt_length": 264,
+   "embedding_sha256": "1101d244cd5df2d0d149355b12bc00a46e393d28b813c6a8eafe510de35f7a30"
+  },
+  {
+   "id": "TPMT_HUMAN_Matreyek_2018",
+   "n_variants": 3648,
+   "wt_length": 245,
+   "embedding_sha256": "ab0f437d3158e4839187e6ef10e91a8f2bc34258869e1b80447334cf0e09139a"
+  },
+  {
+   "id": "RNC_ECOLI_Weeks_2023",
+   "n_variants": 4277,
+   "wt_length": 226,
+   "embedding_sha256": "1c2512936e8b70dba4531310ca0f99ca88e7c620c098863695879acdb208ead6"
+  }
+ ],
+ "models": {
+  "esm2_t6_8M_UR50D": {
+   "repo": "facebook/esm2_t6_8M_UR50D",
+   "revision": "c731040fcd8d73dceaa04b0a8e6329b345b0f5df"
+  },
+  "esm2_t30_150M_UR50D": {
+   "repo": "facebook/esm2_t30_150M_UR50D",
+   "revision": "a695f6045e2e32885fa60af20c13cb35398ce30c"
+  },
+  "esm2_t33_650M_UR50D": {
+   "repo": "facebook/esm2_t33_650M_UR50D",
+   "revision": "08e4846e537177426273712802403f7ba8261b6c"
+  }
+ },
+ "embedding_used_by_search_methods": "esm2_t6_8M_UR50D",
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19
+ ],
+ "budgets": [
+  50,
+  100,
+  200,
+  500
+ ],
+ "start_rule": "start variant = numpy.random.default_rng(1000 + seed).integers(n_variants); method RNG = default_rng((seed, crc32(method_name)))",
+ "configs": {
+  "random_search": {
+   "config": {},
+   "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "random_walk": {
+   "config": {
+    "episode_len": 200
+   },
+   "sha256": "844f9f83b47f67119b58a7c8f96fd3e4df27b844d45ed2498ec17e9c73b05043"
+  },
+  "greedy_local": {
+   "config": {
+    "rule": "steepest ascent over the 15 graph neighbours, random restart at a local optimum"
+   },
+   "sha256": "abd3e59aced8f16e9ca6842cf09972b177a846013f8e74bbd3ccc4f26b2d804a"
+  },
+  "regevo": {
+   "config": {
+    "pop_size": 20,
+    "sample": 5
+   },
+   "sha256": "5845ac1b25c236fb10d2efb849f7d4e19462a070cdd1dabb21df79b6ac89100b"
+  },
+  "gpbo_ei": {
+   "config": {
+    "n_init": 10,
+    "pca_dim": 50,
+    "kernel": "matern52",
+    "ell_grid": [
+     0.5,
+     1.0,
+     2.0,
+     4.0
+    ],
+    "noise_grid": [
+     0.001,
+     0.01,
+     0.1
+    ],
+    "refit_every": 20,
+    "acquisition": "EI"
+   },
+   "sha256": "0ba9ff9391b8e13ef7da77158f288740715a118d22700af57503cd8d89845f88"
+  },
+  "adalead_graph": {
+   "config": {
+    "kappa": 0.05,
+    "batch": 10,
+    "climb": 20,
+    "note": "graph-adapted, not the published implementation"
+   },
+   "sha256": "7810e69ab5e8d0bf59639f80a4ff8a4487d6674dbd67c5df7e7162f92ca7243a"
+  },
+  "fly": {
+   "config": {
+    "T": 0.1,
+    "lr": 0.1,
+    "scale": 0.45,
+    "replay": 0,
+    "memory": false,
+    "episode_len": 200
+   },
+   "sha256": "39f66cd941122f66c7e88b3890ad443b3563e08c1bf942170f67d15662eb8c81"
+  },
+  "fly_memory": {
+   "config": {
+    "T": 0.1,
+    "lr": 0.1,
+    "scale": 0.45,
+    "replay": 0,
+    "memory": true,
+    "episode_len": 200
+   },
+   "sha256": "2d3e2e521b89a0577f4c13d211c125d8335e2d141091d10144b2822de3c27a26"
+  },
+  "fly_best_tested": {
+   "config": {
+    "T": 0.3,
+    "lr": 0.1,
+    "scale": 0.45,
+    "replay": 5,
+    "memory": true,
+    "episode_len": 200
+   },
+   "sha256": "c26349a24f44defd4d425f0d1ffa99812dd2ecb42dfe0222d75afc7802e39c98"
+  },
+  "zero_shot": {
+   "config": {
+    "models": [
+     "esm2_t6_8M_UR50D",
+     "esm2_t30_150M_UR50D",
+     "esm2_t33_650M_UR50D"
+    ],
+    "modes": [
+     "wt-marginal",
+     "masked-marginal (8M, 150M)"
+    ],
+    "uses_observed_fitness": false
+   },
+   "sha256": "81a76dc98ecdc2068e29fdee6af5b781bf6da25467b613df98954ec515a00406"
+  }
+ },
+ "artifacts": {
+  "results/benchmark/queries.npz": {
+   "sha256": "4c6717aca33e93185a4d4f685a239b3e4a8e1823784480845dba6a3ee1a43d1b",
+   "bytes": 3792026
+  },
+  "results/benchmark/summary.json": {
+   "sha256": "b505ffd19ad7943954499721fca5061a5f18d9fd279ef12935d4be798c8454f6",
+   "bytes": 310575
+  },
+  "results/benchmark/tables.md": {
+   "sha256": "c5e86fa087e6182cc3bf40cc620123dacfb5263b2a48f13bdc8b87c361e332d0",
+   "bytes": 18823
+  },
+  "results/benchmark/per_run_metrics.csv": {
+   "sha256": "b6f78c3c646fa0133d4252bcbdc9ac4a00807c960be2991907562f6c2f872011",
+   "bytes": 603575
+  },
+  "results/ablation/raw.csv": {
+   "sha256": "a7e45760f0f2de3a458942b79c13b8a9a06b4624070b6888b8b67a0aabdfeb8c",
+   "bytes": 259905
+  },
+  "results/learner/final.csv": {
+   "sha256": "7b20cbcd1d72f194067424b6d02d539b6aa22167668b70e7edc1886cc5c1f4ed",
+   "bytes": 12468
+  },
+  "results/transfer/raw_scale0.45.csv": {
+   "sha256": "40ead3f496c03e64b2b32b659139b832aeaa286cf5d82f572061bf465f91e157",
+   "bytes": 89737
+  },
+  "results/hemibrain/raw.csv": {
+   "sha256": "e66e60816fa174241d2f74bd0cf8a8681bedcd4df20eda06c2e71810908fd6d9",
+   "bytes": 6791
+  },
+  "web/public/data/demo_trace.json": {
+   "sha256": "890b9515ae48fad786b38ad42015dbea15533c077ac2cc6db788749e0c2fc342",
+   "bytes": 846797
+  },
+  "web/public/data/results.json": {
+   "sha256": "179d727f6237e6d6c196a6b481df2d30e0e838c3c003c123324e0941996dfd99",
+   "bytes": 300826
+  }
+ },
+ "environment": {
+  "python": "3.12.2",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "packages": {
+   "numpy": "2.5.3",
+   "scipy": "1.18.1",
+   "pandas": "3.0.6",
+   "torch": "2.14.1",
+   "transformers": "5.18.0",
+   "umap-learn": "0.5.12",
+   "neuprint-python": "0.6.4",
+   "huggingface_hub": "1.33.0"
+  }
+ },
+ "replay": "python scripts/verify_replay.py   # re-runs benchmark jobs and compares with results/benchmark/queries.npz"
+}

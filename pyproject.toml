@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flyprotein"
 version = "0.1.0"
-description = "Fly-brain circuits (Drosophila connectome) applied to protein tasks"
+description = "Query-budgeted protein fitness-landscape search: fly-inspired sparse coding vs GP-BO, evolutionary search and zero-shot PLMs on ProteinGym"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24"]
+dependencies = ["numpy>=1.24", "scipy", "pandas", "pyarrow"]
 
 [project.optional-dependencies]
-esm = ["torch", "transformers"]
-connectome = ["neuprint-python", "pandas"]
+esm = ["torch", "transformers", "huggingface_hub"]
+connectome = ["neuprint-python"]
+analysis = ["matplotlib", "umap-learn"]
 dev = ["pytest"]
 
 [tool.setuptools.packages.find]

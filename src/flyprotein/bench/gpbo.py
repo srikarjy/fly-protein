@@ -38,17 +38,21 @@ def _lml(Xq, y, ell, s2):
     return -0.5 * y @ a - np.log(np.diag(c[0])).sum() - 0.5 * len(y) * np.log(2 * np.pi)
 
 
-def gpbo(static, oracle, rng, start):
+def gpbo(static, oracle, rng, start, trace=None):
     X = static.pca
     n = len(X)
     x2 = (X * X).sum(1)
     idx = [start]
-    oracle.query(start)
+    f0 = oracle.query(start)
+    if trace is not None:
+        trace.append(dict(type="init", chosen=int(start), q=1, f=f0))
     while len(idx) < N_INIT:
         i = int(rng.integers(n))
         if not oracle.queried(i):
-            oracle.query(i)
+            fi = oracle.query(i)
             idx.append(i)
+            if trace is not None:
+                trace.append(dict(type="init", chosen=i, q=oracle.n_queries, f=fi))
     hp = None
     while True:
         idx_arr, y = oracle.observed()
@@ -69,4 +73,13 @@ def gpbo(static, oracle, rng, start):
         sd = np.sqrt(np.maximum(1.0 - (v * v).sum(0), 1e-12))
         z = (mu - ys.max()) / sd
         ei = (mu - ys.max()) * norm.cdf(z) + sd * norm.pdf(z)
-        oracle.query(int(cand[int(np.argmax(ei))]))
+        pick = int(np.argmax(ei))
+        if trace is not None:
+            top = np.argsort(-ei)[:5]
+            sy, my = (y.std() if y.std() > 0 else 1.0), y.mean()
+            tr = dict(type="bo", chosen=int(cand[pick]), ell=float(ell), s2=float(s2), n_obs=len(idx_arr),
+                      top=[dict(i=int(cand[t]), ei=float(ei[t]), mu=float(mu[t] * sy + my), sd=float(sd[t] * sy)) for t in top])
+        fc = oracle.query(int(cand[pick]))
+        if trace is not None:
+            tr.update(q=oracle.n_queries, f=float(fc))
+            trace.append(tr)

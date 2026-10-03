@@ -76,6 +76,8 @@ def fmt(t, d=1):
 
 
 md = []
+r4 = lambda t: [round(float(x), 4) for x in t]
+SUMM = dict(agg={}, paired={})
 # ---- aggregate tables
 for metric, title, d in [("pct@", "Best fitness percentile found (mean over assays; [95% bootstrap CI over assays])", 2),
                          ("top1@", "P(reach assay top 1%) in % (mean over assays; [95% CI])", 1),
@@ -86,7 +88,9 @@ for metric, title, d in [("pct@", "Best fitness percentile found (mean over assa
         cells = []
         for b in BUDGETS:
             v = per_assay[per_assay.method == m][f"{metric}{b}"]
-            cells.append(fmt(boot(v), d))
+            t = boot(v)
+            SUMM["agg"].setdefault(metric[:-1], {}).setdefault(m, {})[b] = r4(t)
+            cells.append(fmt(t, d))
         md.append(f"| {NAMES[m]} | " + " | ".join(cells) + " |")
     md.append("")
 
@@ -102,7 +106,9 @@ for ref in ["random_search", "fly", "greedy_local"]:
     for m in methods:
         if m == ref:
             continue
-        md.append(f"| {NAMES[m]} | " + " | ".join(fmt(paired(m, ref, f"top1@{b}")) for b in BUDGETS) + " |")
+        ts = {b: paired(m, ref, f"top1@{b}") for b in BUDGETS}
+        SUMM["paired"].setdefault(ref, {})[m] = {b: r4(t) for b, t in ts.items()}
+        md.append(f"| {NAMES[m]} | " + " | ".join(fmt(ts[b]) for b in BUDGETS) + " |")
     md.append("")
 
 # ---- per assay tables at B=100 and 500
@@ -163,4 +169,16 @@ for a_, b in zip(ax, BUDGETS):
     a_.barh(y, [v[1][0] for v in vals], xerr=[[v[1][0] - v[1][1] for v in vals], [v[1][2] - v[1][0] for v in vals]], color="#4c6ef5", alpha=0.8)
     a_.set_yticks(y); a_.set_yticklabels([v[0] for v in vals], fontsize=8); a_.invert_yaxis(); a_.set_title(f"P(top 1%) at B={b}"); a_.set_xlabel("%")
 fig.tight_layout(); fig.savefig(OUT / "top1_by_budget.png", dpi=120)
+
+# ---- machine-readable summary for the website (same numbers as tables.md)
+import json
+summ = dict(budgets=BUDGETS, n_assays=len(ASSAYS), n_seeds=len(seeds), assays=ASSAYS, names={m: NAMES[m] for m in methods}, agg=SUMM["agg"], paired=SUMM["paired"], per_assay={}, curves={})
+summ["per_assay"] = {m: {a: {k: round(float(v), 3) for k, v in per_assay[(per_assay.assay == a) & (per_assay.method == m)].iloc[0].items() if k not in ("assay", "method")} for a in ASSAYS} for m in methods}
+for m in methods:
+    per = np.stack([np.nanmean([curves[(a, m, s)] for s in seeds], axis=0) for a in ASSAYS])
+    t1 = np.stack([np.mean([curves[(a, m, s)] >= 99 for s in seeds], axis=0) for a in ASSAYS]) * 100
+    ix = rng.integers(0, len(per), size=(1000, len(per)))
+    summ["curves"][m] = {"pct": per.mean(0).round(3).tolist(), "pct_lo": np.percentile(per[ix].mean(1), 2.5, axis=0).round(3).tolist(), "pct_hi": np.percentile(per[ix].mean(1), 97.5, axis=0).round(3).tolist(),
+                         "top1": t1.mean(0).round(2).tolist(), "top1_lo": np.percentile(t1[ix].mean(1), 2.5, axis=0).round(2).tolist(), "top1_hi": np.percentile(t1[ix].mean(1), 97.5, axis=0).round(2).tolist()}
+(OUT / "summary.json").write_text(json.dumps(summ, separators=(",", ":")))
 print("\n".join(md[:60]))

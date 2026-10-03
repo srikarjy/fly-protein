@@ -4,4 +4,8 @@ __pycache__/
 .venv/
 data/
 *.npz
+!results/**/*.npz
 *.npy
+node_modules/
+web/dist/
+.DS_Store

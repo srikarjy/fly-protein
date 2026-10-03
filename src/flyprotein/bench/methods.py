@@ -84,13 +84,16 @@ def regevo(static, oracle, rng, start, *, pop_size=20, sample=5):
         pop.pop(0)
 
 
-def fly(static, oracle, rng, start, *, codes, T=0.1, lr=0.1, memory=False, replay=0, scale=0.45):
+def fly(static, oracle, rng, start, *, codes, T=0.1, lr=0.1, memory=False, replay=0, scale=0.45, trace=None):
     """The Fly Walker learner (reward-prediction-error rule, unchanged) under query accounting.
 
     Each move queries only the variant it moves to; that single measurement is the reward. Reward is the change in
     fitness divided by the std of the fitness values queried so far (x `scale`, the regime the learner was set for), so
     no global fitness statistic of the assay is used. memory=False resets the KC weights at every episode; True keeps
-    them across episodes (restarts every EPISODE_LEN steps)."""
+    them across episodes (restarts every EPISODE_LEN steps).
+
+    trace: optional list; if given, every event is appended as a dict (query count, candidate scores, chosen move,
+    observed fitness, reward-prediction error, the exact weight increment). Tracing never changes the run."""
     n_kc = int(codes.max()) + 1
     ka = codes.shape[1]
     w = np.zeros(n_kc)
@@ -102,13 +105,16 @@ def fly(static, oracle, rng, start, *, codes, T=0.1, lr=0.1, memory=False, repla
         return y.std() if len(y) > 1 else 0.0
 
     def update(cur, nxt, df):
+        """Reward-prediction-error update; returns (reward, delta, a) with a = the weight increment actually applied."""
         s = std_obs()
         if s <= 0 or df == 0:
-            return
-        delta = df * scale / s - (float(val(nxt)) - float(val(cur)))
+            return 0.0, 0.0, 0.0
+        reward = df * scale / s
+        delta = reward - (float(val(nxt)) - float(val(cur)))
         a = lr * delta / (2 * ka)
         w[codes[nxt]] += a
         w[codes[cur]] -= a
+        return reward, delta, a
 
     pos = start
     first = True
@@ -119,6 +125,9 @@ def fly(static, oracle, rng, start, *, codes, T=0.1, lr=0.1, memory=False, repla
                 w[:] = 0.0
         first = False
         oracle.query(pos)
+        if trace is not None:
+            trace.append(dict(type="restart" if len(trace) else "init", pos=int(pos), q=oracle.n_queries, f=oracle.query(pos), reset=not memory,
+                              wabs=float(np.abs(w).sum()), nz=int(np.count_nonzero(w))))
         buf = []
         for _ in range(EPISODE_LEN):
             nb = static.nbrs[pos]
@@ -127,8 +136,14 @@ def fly(static, oracle, rng, start, *, codes, T=0.1, lr=0.1, memory=False, repla
             j = min(int(np.searchsorted(np.cumsum(p), rng.random() * p.sum())), k - 1)
             nxt = int(nb[j])
             f_cur = oracle.query(pos)
-            df = oracle.query(nxt) - f_cur
-            update(pos, nxt, df)
+            new = not oracle.queried(nxt)
+            f_nxt = oracle.query(nxt)
+            df = f_nxt - f_cur
+            reward, delta, a = update(pos, nxt, df)
+            if trace is not None:
+                trace.append(dict(type="move", pos=int(pos), j=j, nxt=nxt, scores=[float(v) for v in vals], f=float(f_nxt), new=new,
+                                  q=oracle.n_queries, reward=float(reward), delta=float(delta), a=float(a),
+                                  wabs=float(np.abs(w).sum()), nz=int(np.count_nonzero(w))))
             if replay:
                 buf.append((pos, nxt, df))
                 for r in rng.integers(0, len(buf), size=replay):

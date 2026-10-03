@@ -80,3 +80,26 @@ def test_curve_percentiles():
     f = np.arange(100.0)
     c = curve_percentiles([3, 50, 10, 99], f, 6)
     assert c[0] == 4.0 and c[1] == 51.0 and c[2] == 51.0 and c[3] == 100.0 and np.isnan(c[4])
+
+
+def test_tracing_does_not_change_the_run_and_records_consistent_state():
+    from flyprotein.bench.gpbo import gpbo
+
+    st, f = synth()
+    codes = st.codes(0, n_kc=200)
+    t_fly, t_bo = [], []
+    a = run_method(fly, st, f, 60, 7, np.random.default_rng(3), codes=codes)
+    b = run_method(fly, st, f, 60, 7, np.random.default_rng(3), codes=codes, trace=t_fly)
+    assert a == b
+    c = run_method(gpbo, st, f, 40, 7, np.random.default_rng(3))
+    d = run_method(gpbo, st, f, 40, 7, np.random.default_rng(3), trace=t_bo)
+    assert c == d
+    # recorded events reproduce the query log, and replaying the recorded weight increments reproduces the scores
+    assert [e["pos"] for e in t_fly if e["type"] in ("init", "restart")][0] == 7
+    w = np.zeros(200)
+    for e in t_fly:
+        if e["type"] == "move":
+            assert np.allclose(w[codes[st.nbrs[e["pos"]]]].sum(1), e["scores"])
+            w[codes[e["nxt"]]] += e["a"]
+            w[codes[e["pos"]]] -= e["a"]
+    assert [e["chosen"] for e in t_bo] == d
