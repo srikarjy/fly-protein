@@ -1,67 +1,150 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fly Walker</title>
-  <link rel="stylesheet" href="/src/style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Better protein representations were not enough — query-budgeted protein search on ProteinGym</title>
+<meta name="description" content="A reproducible study of query-budgeted protein fitness-landscape search using ESM-2, ProteinGym, fly-inspired sparse coding, Bayesian optimization, evolutionary search and zero-shot protein language models. Negative results included." />
+<meta name="author" content="Srikar Jy" />
+<meta name="theme-color" content="#fbfaf7" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Better protein representations were not enough. Search strategy was the bottleneck." />
+<meta property="og:description" content="Query-budgeted protein fitness-landscape search on 10 ProteinGym assays: ESM-2 representations, fly-inspired sparse coding, GP-BO, evolutionary search, zero-shot PLMs. Replayable demo, full benchmark, negative results." />
+<meta property="og:image" content="./og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Better protein representations were not enough. Search strategy was the bottleneck." />
+<meta name="twitter:description" content="Reproducible query-budgeted protein search study on ProteinGym, with negative results." />
+<meta name="twitter:image" content="./og.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6b73'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='9' cy='10' r='2.4'/%3E%3Ccircle cx='16' cy='16' r='2.4'/%3E%3Ccircle cx='23' cy='11' r='2.4'/%3E%3Ccircle cx='12' cy='23' r='2.4'/%3E%3Ccircle cx='23' cy='23' r='2.4'/%3E%3C/g%3E%3C/svg%3E" />
 </head>
 <body>
-  <header>
-    <h1>Fly Walker</h1>
-    <p id="subtitle">Loading landscape…</p>
-    <button id="theme" title="Switch theme">Theme: auto</button>
-  </header>
-  <main>
-    <section id="stage">
-      <div id="mapwrap">
-        <canvas id="map" aria-label="Map of protein variants coloured by measured fitness"></canvas>
-        <div id="tip" hidden></div>
-        <div id="legend"><span>low fitness</span><div id="ramp"></div><span>high</span></div>
-      </div>
-      <div id="kc-wrap">
-        <div class="label"><b>Kenyon cells</b> <span id="kc-note"></span></div>
-        <canvas id="kc" aria-label="Sparse Kenyon cell code of the current variant"></canvas>
-      </div>
-    </section>
-    <aside id="panel">
-      <div class="row buttons">
-        <button id="play">Play</button>
-        <button id="step">Step</button>
-        <button id="reset">Reset</button>
-      </div>
-      <div class="row buttons">
-        <button id="keep">Keep trail</button>
-        <button id="clear">Clear trails</button>
-      </div>
-      <ul id="ghosts"></ul>
-      <label>Mode
-        <select id="mode">
-          <option value="chemotaxis">Chemotaxis (baseline, no brain model)</option>
-          <option value="mushroom">Mushroom body learner (random wiring)</option>
-          <option value="random">Random walk (control)</option>
-          <option value="hemibrain" disabled>Hemibrain wiring (real PN→KC counts)</option>
-        </select>
-      </label>
-      <label>Speed <input id="speed" type="range" min="1" max="60" value="12" /></label>
-      <label>Temperature <output id="temp-out"></output> <input id="temp" type="range" min="0.01" max="0.5" step="0.01" value="0.1" /></label>
-      <p class="hint" id="mode-hint"></p>
-      <dl id="stats">
-        <dt>Variant</dt><dd id="s-var">–</dd>
-        <dt>Fitness</dt><dd id="s-fit">–</dd>
-        <dt>Steps</dt><dd id="s-steps">0</dd>
-        <dt>Best found</dt><dd id="s-best">–</dd>
-      </dl>
-      <p class="hint">Click the map to place the fly. Hover a point for its sequence.</p>
-      <details id="evalbox">
-        <summary>Compare the modes</summary>
-        <p class="hint">50 random starts × 200 steps each, averaged over 3 seeds. "Reached" is the share of starts that hit the top 10% / top 1% of fitness.</p>
-        <button id="run-eval">Run evaluation</button>
-        <table id="eval"><thead><tr><th>Mode</th><th>Median best</th><th>Top 10%</th><th>Top 1%</th></tr></thead><tbody></tbody></table>
-      </details>
-      <p class="hint" id="honest"></p>
-    </aside>
-  </main>
-  <script type="module" src="/src/main.ts"></script>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="#top">fly-protein</a>
+  <nav aria-label="Sections"><a href="#figure">Result</a><a href="#demo">Live experiment</a><a href="#results">Experiments</a><a href="#found">Findings</a><a href="#claims">Scope</a><a href="#engineering">Engineering</a><a href="#reproduce">Reproduce</a></nav>
+</header>
+
+<main id="main">
+<section id="top" class="hero wrap">
+  <p class="eyebrow">Computational biology · protein language models · search under a measurement budget</p>
+  <h1>Better protein representations were not enough. Search strategy was the bottleneck.</h1>
+  <p class="lede">A reproducible study of query-budgeted protein fitness-landscape search using ESM-2, ProteinGym, fly-inspired sparse coding, Bayesian optimization, evolutionary search and zero-shot protein language models.</p>
+  <div id="cards" class="cards" aria-live="polite"><div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div></div>
+  <div class="trio">
+    <article><h2>The question</h2><p>Can a mushroom-body-inspired sparse code and learner find high-fitness protein variants with only a few lab-style measurements, compared with standard search strategies?</p></article>
+    <article><h2>What the experiments found</h2><p>The representation is useful, but the fly-inspired learner fails to convert it into sample-efficient search. With the same measurement budget, GP-BO, evolutionary search and a graph-adapted AdaLead beat it, and a zero-shot ESM-2 ranking that uses no observed fitness is a strong training-free baseline.</p></article>
+    <article><h2>What I built</h2><p>A budgeted-oracle benchmark harness; six search baselines and the fly learner; a zero-shot ESM-2 scorer; four ablation studies; 2,800 deterministic logged runs on 10 ProteinGym assays; and the replayable demo on this page. Python and TypeScript, with tests.</p></article>
+  </div>
+  <p class="byline">Srikar Jy · <a href="https://github.com/srikarjy/fly-protein">source, data and every result file on GitHub</a></p>
+</section>
+
+<section id="figure" class="wrap">
+  <h2>Search efficiency at matched measurement budgets</h2>
+  <p class="cap">How often does each method find a variant in the assay's top 1% after measuring a given number of variants? Mean over <b>10 unrelated ProteinGym assays × 20 seeds</b>; bands are 95% bootstrap intervals over assays. Random search is itself a strong baseline here (it reaches the top 1% in roughly nine of ten runs by 200 measurements), so <b>50–200 measurements is the informative regime</b>.</p>
+  <div class="figbar" id="fig-controls"></div>
+  <div class="figwrap" id="fig-main"><div class="skeleton fig"></div></div>
+  <details class="datatable"><summary>View the numbers</summary><div id="fig-table" class="tablewrap"></div></details>
+  <p class="foot">Graph-adapted AdaLead is not the published implementation unchanged (mutation = move to a graph neighbour, GP surrogate, no recombination). The zero-shot ESM-2 ranking is built without any observed fitness measurement; its budget counts the top-ranked candidates then measured against the assay.</p>
+</section>
+
+<section id="demo" class="wrap">
+  <h2>Live experiment: the same 200 measurements, two strategies</h2>
+  <p class="cap">Both methods start from the same TEM-1 β-lactamase variant and may measure 200 variants of it. Press Start and watch where each one looks. <b>Everything shown is replayed from the recorded run</b> (assay and seed fixed in advance; the run is bit-for-bit the benchmark's); nothing is simulated in your browser. The fly animation is only a picture of the logged search state.</p>
+  <div id="demo-body"><div class="skeleton demo"></div></div>
+</section>
+
+<section id="results" class="wrap">
+  <h2>The experiments behind the finding</h2>
+  <p class="cap">Five studies, in the order they were run. All negative results are kept.</p>
+
+  <article class="study" id="s-rep">
+    <h3><span class="n">1</span>Representation: is the signal there?</h3>
+    <p id="rep-text" class="lead"></p>
+    <div id="rep-chart"><div class="skeleton fig"></div></div>
+  </article>
+
+  <article class="study" id="s-rep-abl">
+    <h3><span class="n">2</span>Representation ablation: was it compressed away?</h3>
+    <p id="rep-abl-text" class="lead"></p>
+    <div id="rep-abl"></div>
+  </article>
+
+  <article class="study" id="s-learner">
+    <h3><span class="n">3</span>Learner ablation: memory, replay, temperature, learning rate</h3>
+    <p id="learner-text" class="lead"></p>
+    <div id="learner-chart"></div>
+  </article>
+
+  <article class="study" id="s-transfer">
+    <h3><span class="n">4</span>Cross-assay pretraining (negative result)</h3>
+    <p id="transfer-text" class="lead"></p>
+    <div id="transfer-chart"></div>
+  </article>
+
+  <article class="study" id="s-hemi">
+    <h3><span class="n">5</span>Real hemibrain wiring vs random wiring</h3>
+    <p id="hemi-text" class="lead"></p>
+    <div id="hemi-chart"></div>
+  </article>
+
+  <article class="study" id="s-bench">
+    <h3><span class="n">★</span>Final benchmark: matched query budgets</h3>
+    <p class="lead">Random search and walk, greedy local search, regularized evolution, GP-BO, graph-adapted AdaLead, zero-shot ESM-2 and the fly learner (with memory and the best configuration tested earlier), on 10 assays × 20 seeds. Unqueried experimental fitness is never visible to a method: it can only ask a budgeted oracle. Per-assay percentile normalisation; raw DMS scores are never averaged across assays. Click a metric or a budget column.</p>
+    <div id="bench-body"></div>
+  </article>
+</section>
+
+<section id="found" class="wrap">
+  <h2>What this project found</h2>
+  <ol class="found" id="find-list"><li class="skeleton line"></li></ol>
+</section>
+
+<section id="claims" class="wrap">
+  <h2>What this project does and does not claim</h2>
+  <div class="claims">
+    <div class="is"><h3>This is</h3><ul>
+      <li>an in-silico benchmark;</li>
+      <li>an evaluation on measured ProteinGym landscapes;</li>
+      <li>a study of query-budgeted sequence search;</li>
+      <li>an application and evaluation of fly-inspired sparse representations.</li></ul></div>
+    <div class="isnot"><h3>This is not</h3><ul>
+      <li>drug discovery or therapeutic design;</li>
+      <li>wet-lab validation;</li>
+      <li>a realistic simulation of a fly brain;</li>
+      <li>proof that biological neural circuits optimise proteins;</li>
+      <li>a novel replacement for established protein-engineering algorithms.</li></ul></div>
+  </div>
+  <p class="foot"><b>Limitations.</b> 10 assays, mostly growth or stability phenotypes; confidence intervals over assays are wide for the deterministic zero-shot rankings. Embedding-based search methods use ESM-2 8M embeddings (CPU-cheap, cached for every assay) while zero-shot scoring goes up to 650M; masked-marginal scoring was run for 8M and 150M only. Graph-adapted AdaLead, GP-BO and regularized evolution used fixed, untuned settings. The fly learner's best configuration was chosen earlier on one landscape and was not re-tuned for the benchmark. The 2-D map in the demo is a UMAP picture and is not what any method sees.</p>
+</section>
+
+<section id="engineering" class="wrap">
+  <h2>Engineering</h2>
+  <div class="eng">
+    <div><h3>Scientific pipeline (Python)</h3><ul>
+      <li><b>Budgeted oracle:</b> methods receive an <code>Oracle</code> that reveals a variant's fitness only when queried and raises when the budget is spent; the data object they get has no fitness field. The evaluator alone reads the full landscape.</li>
+      <li><b>Methods:</b> random search/walk, steepest-ascent local search with restarts, regularized evolution, exact GP Bayesian optimisation (Matérn-5/2, expected improvement; NumPy/SciPy), graph-adapted AdaLead, the fly learner on a FlyHash sparse code, and zero-shot ESM-2 scoring (wild-type and masked marginals).</li>
+      <li><b>Models and data:</b> PyTorch and Hugging Face Transformers for ESM-2 (8M, 150M, 650M); ProteinGym DMS substitutions; neuprint-python for the hemibrain connectome; one 650M embedding run on a Hugging Face Jobs A10G (67 s).</li>
+      <li><b>Determinism:</b> seeded RNG stream per (seed, method), logged query sequences, SHA-256 of every key artifact, a replay script that re-runs jobs and compares logs bit for bit.</li></ul></div>
+    <div><h3>Quality and delivery</h3><ul>
+      <li><b>Tests:</b> pytest for budget accounting, no-fitness access, determinism, prefix consistency, trace replay and the learning rule; vitest for the in-browser replay verifier and log hashes.</li>
+      <li><b>Frontend:</b> TypeScript and Vite; Canvas 2D for the landscape and Kenyon-cell views, hand-written SVG for the charts, d3-scale-chromatic for colour. No UI framework.</li>
+      <li><b>This page is a static site</b> deployed on Vercel. Heavy data (the recorded run, the full result tables) is fetched lazily when you scroll to it.</li>
+      <li><b>Honest demo:</b> the page re-applies the logged weight updates and checks them against the logged statistics and hashes in your browser (see the check under the live experiment).</li></ul></div>
+  </div>
+</section>
+
+<section id="reproduce" class="wrap">
+  <h2>Reproducibility</h2>
+  <div id="repro"><div class="skeleton line"></div></div>
+</section>
+</main>
+
+<footer class="wrap foot-end">
+  <p>Srikar Jy · <a href="https://github.com/srikarjy/fly-protein">github.com/srikarjy/fly-protein</a> · All figures on this page are generated from the committed result files.</p>
+  <p class="muted small">Developed with AI coding assistance (Claude Code). Experimental design choices, results and conclusions are documented in the repository.</p>
+</footer>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>

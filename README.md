@@ -1,73 +1,135 @@
-# fly-protein
+# Better protein representations were not enough. Search strategy was the bottleneck.
 
-Use circuits from the Drosophila connectome to do protein tasks.
+A reproducible study of **query-budgeted protein fitness-landscape search** using ESM-2, ProteinGym, fly-inspired sparse coding, Bayesian optimization, evolutionary search and zero-shot protein language models.
 
-Milestone 1 (this commit): the fly olfactory circuit as a protein fingerprinting and similarity-search layer.
+**Live site and replayable demo: DEPLOY_URL**
 
-```
-sequence -> embedding (k-mer or ESM-2) -> PN->KC expansion -> top-5% winner-take-all -> sparse binary fingerprint
-```
+## 1. Project question
 
-## Quick start
+Can a mushroom-body-inspired sparse code (FlyHash) and a reward-gated learner find high-fitness protein variants with only a few lab-style measurements, compared with established search strategies, when every method has the same number of allowed fitness measurements on measured ProteinGym landscapes?
 
-```bash
-pip install -e ".[dev]"
-pytest
-python scripts/demo.py                 # numpy-only k-mer embeddings
-pip install -e ".[esm]"
-python scripts/demo.py --esm --device cpu           # ESM-2 (8M) embeddings from Hugging Face
-python scripts/real_families.py --esm --device cpu  # real proteins (needs internet)
-```
+## 2. Headline conclusion
 
-Use a fresh venv. In a large Anaconda environment, importing torch and transformers hung on an Abseil mutex message.
+> The representation is useful, but the current fly-inspired learner fails to convert that representation into sample-efficient protein fitness-landscape search.
 
-## Results so far
+With 10 unrelated assays × 20 seeds and matched budgets, graph-adapted AdaLead, GP-BO and regularized evolution find top-1% variants far more often than the fly learner at 50–200 measurements, while the fly learner is level with a random walk on the same graph and at or below random search. A zero-shot ESM-2 ranking, which uses no observed fitness to build its ranking, is a strong training-free baseline. Negative results are part of the result.
 
-Synthetic benchmark: 100 random protein families, 3 members each, queries mutated 30% from the family root, top-1 family retrieval.
+## 3. Demo
 
-| Embedding | Method | Top-1 |
-|---|---|---|
-| k-mer (420 d) | raw cosine | 95% |
-| k-mer (420 d) | FlyHash, default wiring (2000 KCs, 5% active) | 61% |
-| k-mer (420 d) | FlyHash, best of a small sweep (8000 KCs, 10% active) | 70% |
+The site replays a recorded run (TEM-1 β-lactamase, seed 0 of 20 fixed in advance, 200 measurements) of the **fly learner vs GP-BO** from the same starting variant. It shows the landscape, the measured variants, the fly learner's candidate moves and scores, the PN (embedding) and Kenyon-cell layers with learned weights, each memory update, and GP-BO's expected-improvement ranking. Every number comes from logged state; the browser re-applies the logged weight updates and checks them against logged statistics and SHA-256 hashes (shown under the demo). Deep link: `#demo-90` opens the replay at measurement 90.
 
-Same benchmark with ESM-2 8M (320 d, mean-pooled, CPU):
+## 4. Key results
 
-| Embedding | Method | Top-1 |
-|---|---|---|
-| ESM-2 8M | raw cosine | 19% |
-| ESM-2 8M | FlyHash, default wiring | 18% |
+Share of runs that reached the assay's top 1%, mean over 10 assays [95% bootstrap CI over assays]:
 
-Both ESM-2 numbers are low because this benchmark uses random sequences, which ESM-2 was not trained on, and raw cosine is not mean-centered while FlyHash is. It says little about ESM-2 on natural proteins. `scripts/real_families.py` runs the fair version: real UniProt proteins grouped by Pfam family, with a mean-centered cosine baseline. It has not been run yet.
+| method | 50 measured | 100 | 200 | 500 |
+|---|---|---|---|---|
+| random search | 40.0 [32.5, 47.5] | 65.0 [56.5, 72.5] | 88.5 [81.5, 94.0] | 100.0 |
+| greedy local search | 40.5 [31.0, 50.0] | 67.0 [56.0, 77.5] | 88.5 [85.0, 92.0] | 99.5 |
+| regularized evolution | 48.0 [43.5, 53.5] | 75.5 [69.5, 81.0] | 94.0 [88.5, 98.5] | 100.0 |
+| GP-BO (Matérn-5/2, EI) | 52.0 [44.0, 60.5] | 65.5 [56.0, 75.5] | 92.5 [87.0, 97.0] | 99.5 |
+| graph-adapted AdaLead | 54.5 [47.0, 62.5] | 72.5 [64.5, 80.0] | 94.0 [91.0, 96.5] | 100.0 |
+| ESM-2 650M zero-shot (WT-marginal) † | 50.0 [20.0, 80.0] | 80.0 [50.0, 100.0] | 90.0 [70.0, 100.0] | 100.0 |
+| **fly learner** | 30.5 [22.0, 38.0] | 51.0 [37.5, 63.5] | 76.5 [65.5, 87.0] | 98.5 |
+| fly learner + memory | 31.5 [21.0, 42.5] | 54.5 [44.0, 65.5] | 78.5 [66.5, 88.5] | 98.0 |
 
-On k-mer vectors the fly hash is less accurate than exact cosine. Its pitch is a compact binary code that is cheap to store and compare, so the open question is how it compares to cosine and to other hashes on real protein families.
+† Zero-shot ESM-2 builds its ranking without any observed fitness measurement; the budget counts the top-ranked candidates subsequently measured against the assay.
 
-## Status
+Paired difference to the fly learner at 50 measurements (points of P(top 1%)): graph-adapted AdaLead +24.0 [15.5, 32.0], GP-BO +21.5 [15.0, 28.0], regularized evolution +17.5 [8.0, 27.0]. All tables, per-assay results, top-0.1%, best-percentile and AUC metrics: [`results/benchmark/tables.md`](results/benchmark/tables.md); write-up: [`results/benchmark/SUMMARY.md`](results/benchmark/SUMMARY.md).
 
-| Piece | State |
+## 5. Main sample-efficiency figure
+
+![best-percentile and top-1% curves](results/benchmark/headline_curves.png)
+
+Random search is itself strong (50 random measurements of ~3k variants already reach the 98th percentile on average), which is why **50–200 measurements is the informative regime**.
+
+## 6. Methodology
+
+- **Landscapes:** 10 ProteinGym DMS substitution assays from 10 unrelated proteins (2.5–5k single mutants each); candidate set = all variants of an assay. Per-assay percentile normalisation; raw scores are never averaged across assays.
+- **Budgeted oracle:** a budget counts unique variants whose fitness is measured. Methods receive an `Oracle` and a `Static` object without a fitness field, so the only way to learn a fitness is `oracle.query(i)`; an exhausted budget raises. The evaluator alone reads the landscape afterwards.
+- **Matched conditions:** same assay, same shared start variant per (assay, seed), same seeds (20), same candidate set, same search graph for local methods (15-NN in ESM-2 8M embedding space), deterministic logged query sequences.
+- **Metrics:** best percentile found vs measurements, P(reach top 1%), P(reach top 0.1%), AUC of the best-percentile curve, per-assay results; unit of replication = assay; 95% bootstrap CIs over assays; paired differences per assay.
+
+## 7. Baselines
+
+| method | what it may see |
 |---|---|
-| `FlyHash` with random sparse PN->KC wiring | tested |
-| `FlyHash.from_edges` (real synapse counts as weights) | tested on toy edges |
-| `KmerEmbedder` | tested |
-| `ESM2Embedder` | runs on CPU (MacBook, venv) |
-| `scripts/real_families.py` | evaluation logic tested on synthetic families; UniProt download not yet run |
-| `connectome.fetch_pn_kc_edges` (hemibrain via neuPrint) | written, not yet run against the server |
+| random search / random walk | nothing / the graph |
+| greedy local search | graph + fitness of queried variants (steepest ascent, random restart) |
+| regularized evolution | population of queried variants on the graph |
+| GP-BO | PCA-50 of the cached embeddings + queried fitness; exact GP, Matérn-5/2, EI |
+| graph-adapted AdaLead | as GP-BO's surrogate; **not the published implementation** (mutation = move to a graph neighbour, no recombination, GP-mean surrogate, κ = 0.05, batch 10) |
+| zero-shot ESM-2 | sequence only: WT-marginal (8M/150M/650M) and masked-marginal (8M/150M) log-probability ratios |
+| fly learner (+memory, best tested) | graph + FlyHash codes + reward of the variants it moves to |
 
-## Layout
+## 8. Architecture
 
-- `src/flyprotein/flyhash.py` expansion circuit
-- `src/flyprotein/embed.py` k-mer and ESM-2 embedders
-- `src/flyprotein/search.py` fingerprint index
-- `src/flyprotein/connectome.py` hemibrain PN->KC extraction
-- `docs/ROADMAP.md` next milestones
-
-## Fly Walker (interactive page)
-
-```bash
-pip install -e ".[dev]" pandas pyarrow umap-learn matplotlib
-hf download OATML-Markslab/ProteinGym_v1 --repo-type dataset --include "DMS_substitutions/*" --local-dir data/proteingym
-python prep/build_data.py --device cpu     # writes web/public/data.json
-cd web && npm install && npm run dev
+```
+src/flyprotein/
+  flyhash.py      FlyHash sparse expansion code        embed.py       ESM-2 / k-mer embedders
+  connectome.py   hemibrain PN->KC edges (neuPrint)    navigate.py    walker port used by the ablations
+  bench/          oracle.py (budgeted oracle) data.py methods.py gpbo.py adalead.py metrics.py
+scripts/          embed_*.py zeroshot_scores.py run_benchmark.py analyze_*.py verify_replay.py make_manifest.py export_*.py
+results/          benchmark/ ablation/ learner/ transfer/ hemibrain/ MANIFEST.json   (all committed)
+web/              TypeScript + Vite static site; Canvas 2D + SVG; replays recorded state
+tests/            pytest (accounting, determinism, replay, learning rule)    web/src/demo/*.test.ts (vitest)
 ```
 
-See `web/README.md`. The assay is singles-only TEM-1 (no TEM-1 assay in ProteinGym has doubles).
+## 9. Reproduction
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[esm,connectome,analysis,dev]"
+# download ProteinGym DMS substitution parquet shards to data/proteingym/DMS_substitutions/
+python scripts/embed_assays.py                 # ESM-2 8M embeddings (CPU, ~8 min)
+python scripts/prepare_benchmark_data.py
+python scripts/zeroshot_scores.py --model facebook/esm2_t33_650M_UR50D --mode wt   # also 8M/150M, --mode mm
+python scripts/run_benchmark.py --seeds 20 --budget 500
+python scripts/analyze_benchmark.py            # tables, plots, summary.json
+python scripts/verify_replay.py                # re-runs jobs, compares to results/benchmark/queries.npz
+python scripts/make_manifest.py                # revisions + SHA-256 of every key artifact
+pytest && (cd web && npm ci && npm test && npm run build)
+```
+
+`results/MANIFEST.json` records assay IDs, model and dataset revisions, seeds, budgets, per-method configuration hashes and artifact SHA-256. The site's data files are generated by `scripts/export_web_results.py` and `scripts/export_demo_trace.py` from the committed result files; the latter asserts that the traced demo runs are identical to the benchmark's logs.
+
+## 10. Ablations
+
+| study | question | outcome |
+|---|---|---|
+| [representation](results/ablation/SUMMARY.md) | ESM-2 8M/150M/650M × input dim × Kenyon cells × sparsity, dense cosine / SimHash / FlyHash | the signal is there and FlyHash keeps most of it; compression was not the cause |
+| [learner sweep](results/learner/SUMMARY.md) | learning rate, temperature, absolute rule, replay | no reliable improvement |
+| [cross-assay pretraining](results/transfer/SUMMARY.md) | leave-one-assay-out transfer of the learner's weights | weak positive ranking signal, no navigation gain, often harmful |
+| [hemibrain wiring](results/hemibrain/SUMMARY.md) | real PN→KC synapse counts vs random wiring | slightly worse, no navigation advantage |
+
+## 11. Negative results
+
+- Cross-assay pretraining produced weak but consistently positive held-out ranking signal (Spearman 0.04–0.14), yet failed to improve query-budgeted navigation and often harmed it. Weak transferable ranking information is insufficient for effective sequential search under the current learner.
+- Real hemibrain wiring gave no measurable advantage over random wiring.
+- Larger ESM-2 models improve neighbourhood quality but not the fly learner's navigation gain.
+- Memory helps the fly learner somewhat but does not make it competitive; tuning the learner did not help reliably.
+
+## 12. Limitations
+
+10 assays (mostly growth/stability phenotypes); wide assay-level CIs for the deterministic zero-shot rankings; search methods use ESM-2 8M embeddings while zero-shot goes to 650M (masked-marginal run for 8M and 150M only); graph-adapted AdaLead, GP-BO and regularized evolution use fixed, untuned settings; the fly learner's best configuration was chosen earlier on one landscape; the demo's 2-D map is a UMAP picture that no method sees. This is an in-silico benchmark, not drug discovery or wet-lab validation, and not a simulation of a fly brain.
+
+## 13. Literature / related work
+
+- Lin et al., *Evolutionary-scale prediction of atomic-level protein structure with a language model* (ESM-2), Science 2023.
+- Notin et al., *ProteinGym: Large-Scale Benchmarks for Protein Fitness Prediction and Design*, NeurIPS Datasets & Benchmarks 2023.
+- Meier et al., *Language models enable zero-shot prediction of the effects of mutations on protein function*, NeurIPS 2021 (wild-type and masked marginals).
+- Sinai et al., *AdaLead: A simple and robust adaptive greedy search algorithm for sequence design*, arXiv:2010.02141, 2020.
+- Real et al., *Regularized Evolution for Image Classifier Architecture Search*, AAAI 2019.
+- Romero, Krause, Arnold, *Navigating the protein fitness landscape with Gaussian processes*, PNAS 2013.
+- Dasgupta, Stevens, Navlakha, *A neural algorithm for a fundamental computing problem* (FlyHash), Science 2017.
+- Scheffer et al., *A connectome and analysis of the adult Drosophila central brain* (hemibrain), eLife 2020.
+
+## 14. Deployment
+
+Static site (`web/`, Vite build) deployed on Vercel: DEPLOY_URL
+
+## 15. License
+
+MIT (see `LICENSE`).
+
+*Development note: built with AI coding assistance (Claude Code); the study design, results and conclusions are documented in this repository.*

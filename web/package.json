@@ -1,14 +1,13 @@
 {
-  "name": "fly-walker",
+  "name": "fly-protein-site",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "eval": "vite-node scripts/eval.ts"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/d3-scale": "^4.0.9",
@@ -16,11 +15,11 @@
     "@types/node": "^26.6.4",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
-    "vite-node": "^6.0.0",
     "vitest": "^5.0.3"
   },
   "dependencies": {
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.1.0"
-  }
+  },
+  "description": "Static site: query-budgeted protein search study with a replayable demo"
 }
