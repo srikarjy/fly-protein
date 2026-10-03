@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "prep"))
-from build_data import knn_cosine  # noqa: E402
+from build_data import hemibrain_codes, knn_cosine  # noqa: E402
 
 from flyprotein.flyhash import FlyHash  # noqa: E402
 from flyprotein.project import gaussian_projection  # noqa: E402
@@ -37,3 +37,15 @@ def test_flyhash_from_toy_edges_has_exact_sparsity():
     fh = FlyHash.from_edges(edges, n_pn=10, n_kc=40, active_frac=0.1)
     codes = fh.encode(np.random.default_rng(2).standard_normal((6, 10)))
     assert (codes.sum(axis=1) == 4).all()
+
+
+def test_hemibrain_codes_sparse_and_deterministic():
+    rng = np.random.default_rng(2)
+    E = rng.standard_normal((20, 32)).astype(np.float32)
+    n_pn, n_kc = 8, 40
+    edges = [(int(rng.integers(n_pn)), int(rng.integers(n_kc)), float(rng.integers(1, 9))) for _ in range(120)]
+    c1, k = hemibrain_codes(E, edges, n_pn, n_kc, seed=1)
+    c2, _ = hemibrain_codes(E, edges, n_pn, n_kc, seed=1)
+    assert c1.shape == (20, n_kc) and k == 2
+    assert (c1.sum(axis=1) == k).all()
+    assert (c1 == c2).all()

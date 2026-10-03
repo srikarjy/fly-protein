@@ -1,6 +1,6 @@
 import { DEFAULTS, Fly, type AgentParams, type Mode } from "./agent";
 import { MushroomBodyLearner } from "./learner";
-import { type Landscape, quantile } from "./landscape";
+import { type Landscape, hemiView, quantile } from "./landscape";
 import { mulberry32 } from "./rng";
 
 export interface EvalRow {
@@ -35,7 +35,7 @@ export function evaluate(
   const threshold = quantile(L.fitness, 1 - topFrac);
   const startRng = mulberry32(seed);
   const runRng = mulberry32(seed + 1000);
-  const shared = opts.carryOver && mode === "mushroom" ? new MushroomBodyLearner(L.nKc, params.lr, params.rule) : undefined;
+  const shared = opts.carryOver && (mode === "mushroom" || mode === "hemibrain") ? new MushroomBodyLearner((mode === "hemibrain" ? hemiView(L) : L).nKc, params.lr, params.rule) : undefined;
   const bests: number[] = [];
   const hits: number[] = [];
   for (let s = 0; s < starts; s++) {

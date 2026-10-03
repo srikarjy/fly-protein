@@ -16,8 +16,14 @@ from pathlib import Path
 import numpy as np
 
 from flyprotein.flyhash import FlyHash
+from flyprotein.project import gaussian_projection
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def emb_cache_path(cache: Path, assay: str, model: str) -> Path:
+    """Embeddings are cached per model so switching checkpoints can't reuse stale vectors."""
+    return cache / f"{assay}.{model.split('/')[-1]}.emb.npy"
 
 
 def load_assay(assay: str, shard_glob: str) -> "pd.DataFrame":
@@ -48,6 +54,43 @@ def knn_cosine(X: np.ndarray, k: int) -> np.ndarray:
     return out
 
 
+def hemibrain_codes(E: np.ndarray, edges, n_pn: int, n_kc: int, seed: int = 0) -> tuple[np.ndarray, int]:
+    """Sparse codes through real PN->KC wiring. E (n, d) -> project to n_pn PN channels
+    (fixed seeded Gaussian projection) -> synapse-count matrix -> top 5% of KCs."""
+    P = gaussian_projection(E.shape[1], n_pn, seed=seed)
+    Ep = E @ P
+    fh = FlyHash.from_edges(edges, n_pn, n_kc).fit(Ep)
+    return fh.encode(Ep), fh.k_active
+
+
+def add_hemibrain(path: Path, cache: Path, seed: int = 0) -> None:
+    """Add real-wiring codes to an existing data.json without touching positions or neighbors."""
+    from flyprotein.connectome import load_pn_kc_edges
+
+    raw = json.loads(path.read_text())
+    assay = raw["meta"]["assay"]
+    E = np.load(emb_cache_path(cache, assay, raw["meta"]["embedding"]))
+    if E.shape[0] != len(raw["variants"]):
+        raise SystemExit("cached embeddings do not match data.json; rebuild without --hemi-only")
+    edges, n_pn, n_kc = load_pn_kc_edges(cache=str(cache / "hemibrain_pn_kc.npz"))
+    codes, k_active = hemibrain_codes(E, edges, n_pn, n_kc, seed)
+    for v, c in zip(raw["variants"], codes):
+        v["h"] = np.flatnonzero(c).tolist()
+    raw["meta"]["hemi"] = {
+        "n_pn": n_pn,
+        "n_kc": n_kc,
+        "active_kc": k_active,
+        "n_edges": len(edges),
+        "proj_seed": seed,
+        "dataset": "hemibrain:v1.2.1",
+        "roi": "CA(R)",
+        "note": "Real PN->KC synapse counts (type .*PN.* onto KC.*, includes a few non-olfactory PNs). "
+        "Input is a fixed random Gaussian projection of the ESM-2 embedding to the PN count.",
+    }
+    path.write_text(json.dumps(raw, separators=(",", ":")))
+    print(f"hemibrain: {n_pn} PNs -> {n_kc} KCs, {k_active} active; wrote {path} ({path.stat().st_size/1e6:.1f} MB)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--assay", default="BLAT_ECOLX_Firnberg_2014")
@@ -59,15 +102,19 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=str(ROOT / "web/public/data.json"))
     ap.add_argument("--cache", default=str(ROOT / "data/cache"))
+    ap.add_argument("--hemi-only", action="store_true", help="add real-wiring codes to existing data.json and exit")
     a = ap.parse_args()
 
     cache = Path(a.cache)
     cache.mkdir(parents=True, exist_ok=True)
+    if a.hemi_only:
+        add_hemibrain(Path(a.out), cache, a.seed)
+        return
     df = load_assay(a.assay, a.shards)
     print(f"{a.assay}: {len(df)} variants, DMS_score {df.DMS_score.min():.3f}..{df.DMS_score.max():.3f}")
     wt = df.target_seq.iloc[0]
 
-    emb_path = cache / f"{a.assay}.emb.npy"
+    emb_path = emb_cache_path(cache, a.assay, a.model)
     if emb_path.exists() and np.load(emb_path).shape[0] == len(df):
         E = np.load(emb_path)
     else:

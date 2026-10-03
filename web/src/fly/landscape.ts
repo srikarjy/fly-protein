@@ -10,6 +10,9 @@ export interface Landscape {
   /** active Kenyon cell indices per variant */
   codes: Int32Array[];
   nKc: number;
+  /** codes through the real hemibrain PN->KC wiring (absent if data.json lacks them) */
+  hemiCodes?: Int32Array[];
+  hemiNKc?: number;
   mutants: string[];
   wt: string;
   assay: string;
@@ -23,10 +26,11 @@ interface RawVariant {
   y: number;
   n: number[];
   c: number[];
+  h?: number[];
 }
 
 export function parseLandscape(raw: {
-  meta: { k: number; n_kc: number; wt: string; assay: string; embedding: string };
+  meta: { k: number; n_kc: number; wt: string; assay: string; embedding: string; hemi?: { n_kc: number } };
   variants: RawVariant[];
 }): Landscape {
   const { meta, variants } = raw;
@@ -54,7 +58,17 @@ export function parseLandscape(raw: {
     L.codes[i] = Int32Array.from(v.c);
     L.mutants[i] = v.m;
   });
+  if (meta.hemi && variants.every((v) => v.h)) {
+    L.hemiNKc = meta.hemi.n_kc;
+    L.hemiCodes = variants.map((v) => Int32Array.from(v.h!));
+  }
   return L;
+}
+
+/** The same landscape seen through the real hemibrain wiring: codes and nKc swapped. */
+export function hemiView(L: Landscape): Landscape {
+  if (!L.hemiCodes || !L.hemiNKc) throw new Error("data.json has no hemibrain codes; run prep/build_data.py --hemi-only");
+  return { ...L, codes: L.hemiCodes, nKc: L.hemiNKc };
 }
 
 export function quantile(values: ArrayLike<number>, q: number): number {

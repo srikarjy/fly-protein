@@ -14,11 +14,13 @@ const HINTS: Record<UiMode, string> = {
   mushroom:
     "Fly-inspired circuit with random wiring. Never sees fitness of neighbors, only their Kenyon codes; learns code→value from the fitness change it experiences after each move (dopamine-like error).",
   random: "Control: ignores fitness entirely.",
+  hemibrain:
+    "Same learner as the mushroom body mode, but PN→KC wiring is the real hemibrain synapse-count matrix (135 PNs → 1,785 KCs). Input is a fixed random projection of the embedding to 135 channels. Not a simulation of the whole fly brain.",
 };
 
 interface Ghost { mode: Mode; path: number[]; best: number }
-const MODE_COLOR: Record<Mode, string> = { chemotaxis: "#f08c00", mushroom: "#1c7ed6", random: "#868e96" };
-const MODE_NAME: Record<Mode, string> = { chemotaxis: "Chemotaxis", mushroom: "Mushroom body", random: "Random walk" };
+const MODE_COLOR: Record<Mode, string> = { chemotaxis: "#f08c00", mushroom: "#1c7ed6", random: "#868e96", hemibrain: "#2f9e44" };
+const MODE_NAME: Record<Mode, string> = { chemotaxis: "Chemotaxis", mushroom: "Mushroom body", random: "Random walk", hemibrain: "Hemibrain wiring" };
 let ghosts: Ghost[] = [];
 let theme: "auto" | "light" | "dark" = "auto";
 
@@ -80,7 +82,7 @@ function saveHash() {
 function loadHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   const mode = q.get("mode");
-  if (mode && ["chemotaxis", "mushroom", "random"].includes(mode)) $<HTMLSelectElement>("mode").value = mode;
+  if (mode && ["chemotaxis", "mushroom", "random", "hemibrain"].includes(mode) && (mode !== "hemibrain" || L.hemiCodes)) $<HTMLSelectElement>("mode").value = mode;
   const t = parseFloat(q.get("t") ?? "");
   if (t >= 0.01 && t <= 0.5) $<HTMLInputElement>("temp").value = String(t);
   const s = parseFloat(q.get("s") ?? "");
@@ -175,22 +177,23 @@ function drawKenyon() {
   const g = c.getContext("2d")!;
   g.scale(dpr, dpr);
   const cols = 125;
-  const rows = Math.ceil(L.nKc / cols);
+  const V = fly.view;
+  const rows = Math.ceil(V.nKc / cols);
   const cw = w / cols;
   const ch = h / rows;
   g.fillStyle = css("--dim");
-  for (let i = 0; i < L.nKc; i++) g.fillRect((i % cols) * cw + 0.3, Math.floor(i / cols) * ch + 0.3, cw - 0.6, ch - 0.6);
+  for (let i = 0; i < V.nKc; i++) g.fillRect((i % cols) * cw + 0.3, Math.floor(i / cols) * ch + 0.3, cw - 0.6, ch - 0.6);
   const wts = fly.learner?.w;
   let wmax = 1e-9;
   if (wts) for (let i = 0; i < wts.length; i++) wmax = Math.max(wmax, Math.abs(wts[i]));
-  for (const i of L.codes[fly.pos]) {
+  for (const i of V.codes[fly.pos]) {
     const learned = wts !== undefined && Math.abs(wts[i]) > 1e-6;
     g.fillStyle = !wts || !learned ? css("--text") : wts[i] > 0 ? "#e8590c" : "#1971c2";
     g.globalAlpha = learned ? 0.35 + 0.65 * Math.min(1, Math.abs(wts![i]) / wmax) : 0.55;
     g.fillRect((i % cols) * cw, Math.floor(i / cols) * ch, cw, ch);
   }
   g.globalAlpha = 1;
-  $("kc-note").textContent = `${L.codes[fly.pos].length} of ${L.nKc} lit` + (wts ? " · grey = untrained, orange = learned positive weight, blue = negative" : " · not used by this walker");
+  $("kc-note").textContent = `${V.codes[fly.pos].length} of ${V.nKc} lit` + (wts ? " · grey = untrained, orange = learned positive weight, blue = negative" : " · not used by this walker");
 }
 
 function nearest(ev: MouseEvent): number {
@@ -234,6 +237,9 @@ async function runEval() {
     ["chemotaxis", "Chemotaxis", false],
     ["mushroom", "Mushroom body", false],
     ["mushroom", "Mushroom body, memory kept across starts", true],
+    ...(L.hemiCodes
+      ? ([["hemibrain", "Hemibrain wiring", false], ["hemibrain", "Hemibrain wiring, memory kept across starts", true]] as [Mode, string, boolean][])
+      : []),
   ];
   const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
   for (const [mode, label, carryOver] of rows) {
@@ -261,8 +267,10 @@ async function main() {
   $("ramp").style.background = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1].map((t) => interpolateViridis(t)).join(",")})`;
   $("subtitle").textContent = `${L.assay} · ${L.n.toLocaleString()} variants · measured fitness (ProteinGym) · ${L.embedding.split("/").pop()} embeddings`;
   $("honest").textContent =
-    "The 2D map is a lossy UMAP picture. The fly walks the real 15-nearest-neighbor graph in embedding space, so a hop can jump across the map. Chemotaxis is a baseline; the mushroom body mode uses random PN→KC wiring, not the real connectome.";
+    "The 2D map is a lossy UMAP picture. The fly walks the real 15-nearest-neighbor graph in embedding space, so a hop can jump across the map. Chemotaxis is a baseline; the mushroom body mode uses random PN→KC wiring; the hemibrain mode uses real PN→KC synapse counts from the hemibrain connectome (only that circuit, not the whole brain).";
 
+  if (!L.hemiCodes) $<HTMLOptionElement>("mode").querySelector<HTMLOptionElement>('option[value="hemibrain"]')!.remove();
+  else $<HTMLSelectElement>("mode").querySelector<HTMLOptionElement>('option[value="hemibrain"]')!.disabled = false;
   paintBase();
   try { const th = localStorage.getItem("fw-theme"); if (th === "light" || th === "dark") theme = th; } catch { /* ignore */ }
   applyTheme();

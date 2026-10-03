@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Fly, DEFAULTS } from "./agent";
 import { chemotaxisStep } from "./chemotaxis";
-import { type Landscape, applyMutations, parseLandscape, quantile } from "./landscape";
+import { type Landscape, applyMutations, hemiView, parseLandscape, quantile } from "./landscape";
 import { MushroomBodyLearner } from "./learner";
 import { mulberry32, softmaxSample } from "./rng";
 
@@ -97,5 +97,42 @@ describe("landscape helpers", () => {
   it("applies ProteinGym mutations 1-indexed", () => {
     expect(applyMutations("ABCDE", "B2X")).toBe("AXCDE");
     expect(applyMutations("ABCDE", "A1Z:E5Y")).toBe("ZBCDY");
+  });
+});
+
+describe("hemibrain mode", () => {
+  function ringHemi(): Landscape {
+    const n = 20;
+    const variants = Array.from({ length: n }, (_, i) => ({
+      m: `A${i + 1}G`,
+      f: 1 - Math.abs(i - 10) / 10,
+      x: i / n,
+      y: 0,
+      n: [(i + n - 1) % n, (i + 1) % n],
+      c: [i, (i + 7) % 40],
+      h: [i % 9, 9 + (i % 5)],
+    }));
+    return parseLandscape({ meta: { k: 2, n_kc: 40, wt: "A".repeat(n), assay: "ring", embedding: "none", hemi: { n_kc: 14 } }, variants });
+  }
+
+  it("hemiView swaps codes and nKc and keeps fitness", () => {
+    const L = ringHemi();
+    const V = hemiView(L);
+    expect(V.nKc).toBe(14);
+    expect(V.codes[3]).toEqual(Int32Array.from([3, 12]));
+    expect(V.fitness).toBe(L.fitness);
+  });
+
+  it("throws a clear error without hemibrain codes", () => {
+    expect(() => hemiView(ring())).toThrow(/hemi-only/);
+  });
+
+  it("a hemibrain fly learns on the 14-cell codes", () => {
+    const L = ringHemi();
+    const fly = new Fly(L, "hemibrain", 3, DEFAULTS.hemibrain);
+    expect(fly.learner!.w.length).toBe(14);
+    const rng = mulberry32(5);
+    for (let i = 0; i < 30; i++) fly.step(rng);
+    expect(fly.learner!.w.some((x) => x !== 0)).toBe(true);
   });
 });
