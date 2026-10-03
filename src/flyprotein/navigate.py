@@ -18,11 +18,11 @@ import numpy as np
 class SparseFeat:
     """Binary KC codes, fixed number of active cells per variant. codes: (n, k_active)."""
 
-    def __init__(self, codes: np.ndarray, lr: float = 0.1):
+    def __init__(self, codes: np.ndarray, lr: float = 0.1, n_feat: int | None = None):
         self.codes = codes
         self.ka = codes.shape[1]
         self.lr = lr
-        self.n_feat = int(codes.max()) + 1
+        self.n_feat = n_feat or int(codes.max()) + 1
         self.reset()
 
     def reset(self, n_feat: int | None = None):
@@ -85,9 +85,11 @@ def run_walks(
     top_fracs=(0.1, 0.01),
     rule: str = "difference",
     replay: int = 0,
+    w0: np.ndarray | None = None,
 ) -> dict:
     """Same starts for every mode at a given seed. mode: 'random' | 'chemotaxis' | 'learner'.
 
+    w0: initial KC->output weights (default zeros); with carry=False every episode restarts from w0.
     rule: 'difference' (web app default) or 'absolute'. replay: extra updates per step on
     transitions already experienced in this episode, recomputed with the current weights
     (the fly never sees a fitness it has not visited). Defaults reproduce the web app.
@@ -101,11 +103,17 @@ def run_walks(
     rng = np.random.default_rng(seed + 1000)
     thr = {f: np.quantile(fitness, 1 - f) for f in top_fracs}
     bests, reached = [], {f: 0 for f in top_fracs}
-    if feat is not None and carry:
+
+    def init_weights():
         feat.reset()
+        if w0 is not None:  # start from pre-trained synapses instead of zero
+            feat.w[:] = w0
+
+    if feat is not None and carry:
+        init_weights()
     for s in start_list:
         if feat is not None and not carry:
-            feat.reset()
+            init_weights()
         pos = int(s)
         buf = []  # transitions experienced this episode
         best = fitness[pos]
