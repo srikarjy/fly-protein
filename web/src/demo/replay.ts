@@ -17,7 +17,6 @@ export interface FlyState {
 export class FlyReplay {
   w: Float64Array;
   private applied = 0;
-  private tick = 0;
   /** the variant measured by the k-th query, k = 1..; derived from the event list */
   readonly queryOrder: number[] = [];
   constructor(readonly trace: Trace) {
@@ -26,12 +25,6 @@ export class FlyReplay {
       if (e.type !== "move") this.queryOrder.push(e.pos);
       else if (e.new) this.queryOrder.push(e.nxt!);
     }
-  }
-
-  private reset() {
-    this.w.fill(0);
-    this.applied = 0;
-    this.tick = 0;
   }
 
   private apply(e: FlyEvent) {
@@ -46,12 +39,28 @@ export class FlyReplay {
     for (const c of codes[String(e.pos)]) this.w[c] -= a;
   }
 
+  /** number of recorded events that have happened once k measurements have been made (events carry the measurement count q) */
+  eventsAfter(k: number): number {
+    const ev = this.trace.fly.events;
+    let n = 0;
+    while (n < ev.length && ev[n].q <= k) n++;
+    return n;
+  }
+
+  /** Put the weights in the state after the first n recorded events (re-applies from the start when going backwards). */
+  seekEvents(n: number) {
+    const ev = this.trace.fly.events;
+    if (n < this.applied) {
+      this.w.fill(0);
+      this.applied = 0;
+    }
+    while (this.applied < n) this.apply(ev[this.applied++]);
+  }
+
   /** State after k measurements (all moves up to and including revisit moves that follow the k-th measurement). */
   seek(k: number): FlyState {
     const ev = this.trace.fly.events;
-    if (k < this.tick) this.reset();
-    while (this.applied < ev.length && ev[this.applied].q <= k) this.apply(ev[this.applied++]);
-    this.tick = k;
+    this.seekEvents(this.eventsAfter(k));
     const done = ev.slice(0, this.applied);
     const moves = done.filter((e) => e.type === "move");
     let since = 0;

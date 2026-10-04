@@ -16,7 +16,9 @@ With 10 unrelated assays × 20 seeds and matched budgets, graph-adapted AdaLead,
 
 ## 3. Demo
 
-The site replays a recorded run (TEM-1 β-lactamase, seed 0 of 20 fixed in advance, 200 measurements) of the **fly learner vs GP-BO** from the same starting variant. It shows the landscape, the measured variants, the fly learner's candidate moves and scores, the PN (embedding) and Kenyon-cell layers with learned weights, each memory update, and GP-BO's expected-improvement ranking. Every number comes from logged state; the browser re-applies the logged weight updates and checks them against logged statistics and SHA-256 hashes (shown under the demo). Deep link: `#demo-90` opens the replay at measurement 90.
+The site replays a recorded run (TEM-1 β-lactamase, seed 0 of 20 fixed in advance, 200 measurements) of the **fly learner vs GP-BO** from the same starting variant. A small procedural fly (three.js) stands on the recorded variant it currently occupies on the landscape map and travels the recorded moves; a circuit view shows, for the variant the learner decides from, its 320 input channels, the real PN→KC wiring into the active Kenyon cells, the sparse code (100 / 2,000 active), the learner's candidate scores, the chosen mutation, the measured fitness and the recorded weight update. GP-BO's panel shows its recorded expected-improvement ranking, predicted fitness and selected query. Every number comes from logged state; the browser re-applies the logged weight updates and checks them against logged statistics and SHA-256 hashes (shown under the demo).
+
+Controls: Start / Pause / Next / Previous / Reset, a timeline scrubber (restarts are marked), direct step entry, speed and a "Stage animation" switch (off, or `prefers-reduced-motion`, shows the settled recorded state at once). Deep link: `#demo-90` opens the replay at measurement 90. *Visual motion is interpolated for presentation; protein variants, neural activations, learner scores, fitness values and state transitions are replayed from recorded benchmark runs.* The fly is a navigation marker, not a simulation of a fly brain, and the 2-D map is a UMAP picture that no method sees.
 
 ## 4. Key results
 
@@ -71,7 +73,8 @@ src/flyprotein/
   bench/          oracle.py (budgeted oracle) data.py methods.py gpbo.py adalead.py metrics.py
 scripts/          embed_*.py zeroshot_scores.py run_benchmark.py analyze_*.py verify_replay.py make_manifest.py export_*.py
 results/          benchmark/ ablation/ learner/ transfer/ hemibrain/ MANIFEST.json   (all committed)
-web/              TypeScript + Vite static site; Canvas 2D + SVG; replays recorded state
+web/              TypeScript + Vite static site; replays recorded state (src/demo: state.ts one immutable StepView per step,
+                  store.ts the single current step, choreo.ts presentation timing, gfx/ three.js landscape+fly+circuit, Canvas 2D fallback)
 tests/            pytest (accounting, determinism, replay, learning rule)    web/src/demo/*.test.ts (vitest)
 ```
 
@@ -88,6 +91,7 @@ python scripts/run_benchmark.py --seeds 20 --budget 500
 python scripts/analyze_benchmark.py            # tables, plots, summary.json
 python scripts/verify_replay.py                # re-runs jobs, compares to results/benchmark/queries.npz
 python scripts/make_manifest.py                # revisions + SHA-256 of every key artifact
+python scripts/export_demo_circuit.py          # (display only) PN->KC wiring, KC drive and move probabilities for the demo's circuit view
 pytest && (cd web && npm ci && npm test && npm run build)
 ```
 
